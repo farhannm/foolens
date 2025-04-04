@@ -11,6 +11,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -27,6 +28,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("regular")
     fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
@@ -45,23 +47,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL + Constants.API_VERSION + "/") // Menggunakan BASE_URL dan API_VERSION dari Constants
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService {
-        return retrofit.create(ApiService::class.java)
-    }
-
-    // Menyediakan AuthInterceptor untuk menambahkan token ke request
-    @Provides
-    @Singleton
+    @Named("authenticated")
     fun provideAuthenticatedOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor
@@ -73,5 +59,21 @@ object NetworkModule {
             .readTimeout(Constants.NETWORK_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(Constants.NETWORK_TIMEOUT, TimeUnit.SECONDS)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(@Named("authenticated") okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(Constants.BASE_URL + Constants.API_VERSION + "/") // Menggunakan BASE_URL dan API_VERSION dari Constants
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService {
+        return retrofit.create(ApiService::class.java)
     }
 }
