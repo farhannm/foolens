@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,14 +44,17 @@ fun SplashScreen(
         )
     }
 
-    // Handle navigation based on login status with a 3-second delay
-    LaunchedEffect(key1 = true) {
-        delay(4000) // 3 seconds delay for splash screen
+    // Handle navigation based on login status with a delay
+    LaunchedEffect(state.isLoading) {
+        // Wait until loading is complete plus a short delay for splash screen
+        if (!state.isLoading) {
+            delay(2000) // 2 seconds delay after loading completes
 
-        if (state.isLoggedIn) {
-            onNavigateToHome()
-        } else {
-            onNavigateToLanding()
+            if (state.isLoggedIn) {
+                onNavigateToHome()
+            } else {
+                onNavigateToLanding()
+            }
         }
     }
 }

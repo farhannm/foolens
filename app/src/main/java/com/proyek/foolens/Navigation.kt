@@ -1,20 +1,33 @@
 package com.proyek.foolens
 
+import android.Manifest
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
+import com.proyek.foolens.domain.model.AllergenCategory
+import com.proyek.foolens.domain.model.UserAllergen
 import com.proyek.foolens.ui.allergens.AllergensScreen
+import com.proyek.foolens.ui.allergens.AllergensViewModel
+import com.proyek.foolens.ui.allergens.add.AddAllergenScreen
+import com.proyek.foolens.ui.allergens.detail.AllergenDetailScreen
 import com.proyek.foolens.ui.auth.login.LoginScreen
 import com.proyek.foolens.ui.auth.register.RegisterScreen
 import com.proyek.foolens.ui.component.BottomNavItem
@@ -23,7 +36,6 @@ import com.proyek.foolens.ui.home.HomeScreen
 import com.proyek.foolens.ui.landing.LandingScreen
 import com.proyek.foolens.ui.scan.ScanScreen
 import com.proyek.foolens.ui.splash.SplashScreen
-import android.Manifest
 
 /**
  * Komponen navigasi utama aplikasi
@@ -82,19 +94,24 @@ fun AppNavigation() {
 
 @Composable
 fun MainNavHost(navController: NavHostController) {
+    // Untuk Demo: Simpan sementara selected allergen di Navigation scope
+    var selectedAllergen by remember { mutableStateOf<UserAllergen?>(null) }
+
     NavHost(
         navController = navController,
         startDestination = "splash"
     ) {
+        // ... Composables yang sudah ada (splash, landing, login, dll)
+
         composable("splash") {
             SplashScreen(
                 onNavigateToLanding = {
-                    // Skip landing, go directly to home instead
-                    navController.navigate("home") {
+                    navController.navigate("landing") {
                         popUpTo("splash") { inclusive = true }
                     }
                 },
                 onNavigateToHome = {
+                    // Directly navigate to home when user is logged in
                     navController.navigate("home") {
                         popUpTo("splash") { inclusive = true }
                     }
@@ -102,9 +119,15 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Landing screen navigation (currently skipped, going directly to home)
         composable("landing") {
-            // Skipping implementation - we're going directly to home
+            LandingScreen(
+                onNavigateToLogin = {
+                    navController.navigate("login")
+                },
+                onNavigateToRegister = {
+                    navController.navigate("register")
+                }
+            )
         }
 
         composable("login") {
@@ -119,6 +142,12 @@ fun MainNavHost(navController: NavHostController) {
                     navController.navigate("home") {
                         popUpTo("landing") { inclusive = true }
                     }
+                },
+                onClose = {
+                    // Navigate back to landing screen
+                    navController.navigate("landing") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             )
         }
@@ -131,9 +160,17 @@ fun MainNavHost(navController: NavHostController) {
                     }
                 },
                 onRegisterSuccess = {
-                    // Navigate to home and clear back stack
+                    // Directly navigate to home when registration is successful
+                    Log.d("Navigation", "Registration successful, navigating to home")
                     navController.navigate("home") {
-                        popUpTo("landing") { inclusive = true }
+                        // Clear all previous destinations
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onClose = {
+                    // Navigate back to landing screen
+                    navController.navigate("landing") {
+                        popUpTo("register") { inclusive = true }
                     }
                 }
             )
@@ -151,11 +188,93 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
+        // Allergens screen dengan navigasi ke detail dan add allergen
         composable(BottomNavItem.Allergens.route) {
-            AllergensScreen()
+            val viewModel: AllergensViewModel = hiltViewModel()
+            val navBackStackEntry = navController.currentBackStackEntry
+            val shouldRefresh = navBackStackEntry
+                ?.savedStateHandle
+                ?.get<Boolean>("should_refresh_allergens") ?: false
+
+            // LaunchedEffect untuk trigger refresh
+            LaunchedEffect(shouldRefresh) {
+                if (shouldRefresh) {
+                    viewModel.refreshAllergens()
+
+                    // Reset the flag
+                    navBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("should_refresh_allergens", false)
+                }
+            }
+
+            AllergensScreen(
+                viewModel = viewModel,
+                onNavigateToAddAllergen = {
+                    navController.navigate("add_allergen")
+                },
+                onNavigateToAllergenDetail = { allergen ->
+                    // Demo: simpan allergen yang dipilih
+                    selectedAllergen = allergen
+                    navController.navigate("allergen_detail")
+                }
+            )
         }
 
-        // Fixed: Single composable for scan screen instead of nested composables
+        // Add allergen screen
+        composable("add_allergen") {
+            AddAllergenScreen(
+                onClose = {
+                    navController.popBackStack()
+                },
+                onSuccess = {
+                    // Set flag di SavedStateHandle untuk refresh
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("should_refresh_allergens", true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Allergen detail screen
+        composable("allergen_detail") {
+            // Gunakan allergen yang disimpan atau default empty allergen
+            val allergen = selectedAllergen ?: UserAllergen(
+                id = 0,
+                name = "Unknown Allergen",
+                description = null,
+                alternativeNames = null,
+                category = AllergenCategory(
+                    id = 0,
+                    name = "Unknown",
+                    icon = null
+                ),
+                severityLevel = 1,
+                notes = null,
+                createdAt = "",
+                updatedAt = ""
+            )
+
+            AllergenDetailScreen(
+                allergen = allergen,
+                onClose = {
+                    navController.popBackStack()
+                },
+                onSave = { severity, notes ->
+                    // Di sini akan memanggil ViewModel untuk update
+                    // Untuk demo kita hanya pop back
+                    navController.popBackStack()
+                },
+                onDelete = {
+                    // Di sini akan memanggil ViewModel untuk delete
+                    // Untuk demo kita hanya pop back
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Updated scan screen with OCR-based allergen detection
         composable("scan") {
             ScanScreen(
                 onClose = {

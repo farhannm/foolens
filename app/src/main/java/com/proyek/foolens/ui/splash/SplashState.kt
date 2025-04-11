@@ -5,5 +5,6 @@ package com.proyek.foolens.ui.splash
  */
 data class SplashState(
     val isLoading: Boolean = true,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val errorMessage: String? = null
 )

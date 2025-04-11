@@ -1,4 +1,4 @@
-package com.proyek.foolens.ui.home;
+package com.proyek.foolens.ui.home
 
 import com.proyek.foolens.domain.model.User
 
