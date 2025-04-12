@@ -3,6 +3,7 @@ package com.proyek.foolens.ui.home
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +38,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,9 +50,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.proyek.foolens.R
+import com.proyek.foolens.ui.component.ConfirmationDialog
 import com.proyek.foolens.ui.theme.Typography
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -60,11 +63,15 @@ import java.time.LocalDate
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
+    onProfileClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Track if logout dialog is showing
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     // Get current date and time
     val currentDate = remember { LocalDate.now() }
@@ -129,10 +136,8 @@ fun HomeScreen(
                         state = state,
                         formattedDate = formattedDate,
                         onRefresh = { viewModel.loadUserData() },
-                        onLogout = {
-                            viewModel.logout()
-                            onLogout()
-                        }
+                        onLogout = { showLogoutDialog = true },
+                        onProfileClick = onProfileClick
                     )
                 }
                 else -> {
@@ -167,7 +172,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = onLogout,
+                            onClick = { showLogoutDialog = true },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red
                             )
@@ -182,6 +187,20 @@ fun HomeScreen(
             }
         }
     }
+
+    // Logout confirmation dialog
+    if (showLogoutDialog) {
+        ConfirmationDialog(
+            title = "Keluar",
+            message = "Apakah Anda yakin untuk keluar dari akun?",
+            icon = painterResource(id = R.drawable.ilustration_sticker),
+            onDismiss = { showLogoutDialog = false },
+            onConfirm = {
+                showLogoutDialog = false
+                onLogout()
+            }
+        )
+    }
 }
 
 @Composable
@@ -189,7 +208,8 @@ fun HomeContent(
     state: HomeState,
     formattedDate: String,
     onRefresh: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -261,8 +281,11 @@ fun HomeContent(
                 )
             }
 
-            // Profile image
-            Box {
+            // Profile image (clickable to navigate to profile)
+            Box(
+                modifier = Modifier
+                    .clickable(onClick = onProfileClick)
+            ) {
                 Image(
                     painter = painterResource(id = R.drawable.profile_image),
                     contentDescription = "Profile Image",
@@ -306,40 +329,6 @@ fun HomeContent(
                 InfoRow(label = "User ID", value = state.user?.id ?: "-")
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Logout button
-//        Button(
-//            onClick = onLogout,
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(56.dp),
-//            shape = RoundedCornerShape(12.dp),
-//            colors = ButtonDefaults.buttonColors(
-//                containerColor = Color(0xFFC7F131)
-//            )
-//        ) {
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.Center
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.ExitToApp,
-//                    contentDescription = "Logout",
-//                    tint = Color.Black
-//                )
-//
-//                Spacer(modifier = Modifier.size(8.dp))
-//
-//                Text(
-//                    text = "Logout",
-//                    color = Color.Black,
-//                    fontSize = 16.sp,
-//                    fontWeight = FontWeight.SemiBold
-//                )
-//            }
-//        }
     }
 }
 

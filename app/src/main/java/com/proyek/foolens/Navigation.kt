@@ -34,6 +34,7 @@ import com.proyek.foolens.ui.component.BottomNavItem
 import com.proyek.foolens.ui.component.FoolensBottomNavigation
 import com.proyek.foolens.ui.home.HomeScreen
 import com.proyek.foolens.ui.landing.LandingScreen
+import com.proyek.foolens.ui.profile.ProfileScreen
 import com.proyek.foolens.ui.scan.ScanScreen
 import com.proyek.foolens.ui.splash.SplashScreen
 
@@ -179,6 +180,25 @@ fun MainNavHost(navController: NavHostController) {
         // Main app screens with bottom navigation
         composable(BottomNavItem.Home.route) {
             HomeScreen(
+                onLogout = {
+                    // Saat logout, kembali ke login screen (skip landing)
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onProfileClick = {
+                    // Navigate to profile screen
+                    navController.navigate("profile")
+                }
+            )
+        }
+
+        // Profile screen
+        composable("profile") {
+            ProfileScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
                 onLogout = {
                     // Saat logout, kembali ke login screen (skip landing)
                     navController.navigate("login") {

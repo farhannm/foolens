@@ -2,16 +2,22 @@ package com.proyek.foolens.data.remote.api
 
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenResponse
+import com.proyek.foolens.data.remote.dto.ProfileResponse
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenResponse
 import com.proyek.foolens.data.remote.dto.UserDto
 import com.proyek.foolens.util.Constants
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
+import retrofit2.http.PartMap
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -32,6 +38,17 @@ interface ApiService {
 
     @GET(Constants.ENDPOINT_PROFILE)
     suspend fun getUserProfile(): Response<UserDto>
+
+    // Profile endpoints
+    @GET("profile")
+    suspend fun getProfile(): Response<ProfileResponse>
+
+    @Multipart
+    @POST("profile")
+    suspend fun updateProfile(
+        @Part profilePicture: MultipartBody.Part?,
+        @PartMap params: Map<String, @JvmSuppressWildcards RequestBody>
+    ): Response<ProfileResponse>
 
     // Allergen endpoints
     @POST(Constants.ENDPOINT_DETECT_ALLERGENS)

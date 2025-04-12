@@ -15,6 +15,10 @@ object Constants {
     const val ENDPOINT_LOGOUT = "auth/logout"
     const val ENDPOINT_PROFILE = "auth/me"
 
+    // Profile Endpoints
+    const val ENDPOINT_GET_PROFILE = "profile"
+    const val ENDPOINT_UPDATE_PROFILE = "profile"
+
     // Allergen Endpoints
     const val ENDPOINT_DETECT_ALLERGENS = "allergens/detect"
     const val ENDPOINT_GET_ALL_ALLERGENS = "allergens"

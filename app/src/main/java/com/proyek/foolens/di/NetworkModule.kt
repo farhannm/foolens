@@ -17,6 +17,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -39,7 +40,7 @@ object NetworkModule {
     @Singleton
     fun provideGson(): Gson {
         return GsonBuilder()
-            .setLenient() // Ini akan membuat Gson lebih toleran terhadap JSON yang tidak sempurna
+            .setLenient()
             .create()
     }
 
@@ -57,8 +58,10 @@ object NetworkModule {
         return AuthInterceptor(tokenManager)
     }
 
+    // ✅ OkHttpClient untuk API
     @Provides
     @Singleton
+    @Named("api")
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor
@@ -67,10 +70,9 @@ object NetworkModule {
             .addInterceptor(loggingInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor { chain ->
-                // Menambahkan header content-type yang benar
                 val request = chain.request().newBuilder()
                     .addHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
-                    .addHeader("Accept", "application/json") // Menambahkan header Accept
+                    .addHeader("Accept", "application/json")
                     .build()
                 chain.proceed(request)
             }
@@ -80,13 +82,17 @@ object NetworkModule {
             .build()
     }
 
+    // ✅ Retrofit pakai OkHttpClient bertag 'api'
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
+    fun provideRetrofit(
+        @Named("api") okHttpClient: OkHttpClient,
+        gson: Gson
+    ): Retrofit {
         return Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson)) // Menggunakan Gson yang telah dikonfigurasi
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -94,5 +100,20 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+    // ✅ OkHttpClient khusus image (misal untuk Coil)
+    @Provides
+    @Singleton
+    @Named("image")
+    fun provideImageOkHttpClient(
+        loggingInterceptor: HttpLoggingInterceptor
+    ): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(Constants.NETWORK_TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(Constants.NETWORK_TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(Constants.NETWORK_TIMEOUT, TimeUnit.SECONDS)
+            .build()
     }
 }
