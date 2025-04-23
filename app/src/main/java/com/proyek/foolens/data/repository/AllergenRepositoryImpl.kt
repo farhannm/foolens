@@ -45,8 +45,8 @@ class AllergenRepositoryImpl @Inject constructor(
                         Log.e(TAG, "Error mapping detection response: ${e.message}", e)
 
                         // Fallback: Buat deteksi lokal jika mapping gagal
-                        val fallbackResult = createFallbackDetectionResult(ocrText, detectionResponse)
-                        emit(NetworkResult.Success(fallbackResult))
+//                        val fallbackResult = createFallbackDetectionResult(ocrText, detectionResponse)
+//                        emit(NetworkResult.Success(fallbackResult))
                     }
                 } else {
                     Log.e(TAG, "Respon deteksi alergen kosong")
