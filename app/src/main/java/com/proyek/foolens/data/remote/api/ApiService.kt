@@ -3,6 +3,7 @@ package com.proyek.foolens.data.remote.api
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenResponse
 import com.proyek.foolens.data.remote.dto.ProfileResponse
+import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenResponse
 import com.proyek.foolens.data.remote.dto.UserDto
@@ -80,7 +81,7 @@ interface ApiService {
     suspend fun updateUserAllergen(
         @Path("user_id") userId: String,
         @Path("allergen_id") allergenId: Int,
-        @Body updateRequest: Map<String, Any>
+        @Body updateRequest: UpdateUserAllergenRequest
     ): Response<Map<String, Any>>
 
     @DELETE(Constants.ENDPOINT_DELETE_USER_ALLERGEN)

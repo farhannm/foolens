@@ -1,7 +1,9 @@
 package com.proyek.foolens
 
 import android.Manifest
+import android.app.Activity
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -12,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -37,6 +40,7 @@ import com.proyek.foolens.ui.landing.LandingScreen
 import com.proyek.foolens.ui.profile.ProfileScreen
 import com.proyek.foolens.ui.scan.ScanScreen
 import com.proyek.foolens.ui.splash.SplashScreen
+import com.proyek.foolens.util.DoubleBackPressHandler
 
 /**
  * Komponen navigasi utama aplikasi
@@ -49,6 +53,7 @@ fun AppNavigation() {
     val permissionsState = rememberPermissionState(Manifest.permission.CAMERA)
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
+    val context = LocalContext.current
 
     // Request camera permission when app starts
     LaunchedEffect(Unit) {
@@ -64,19 +69,27 @@ fun AppNavigation() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
+                // Tambahkan DoubleBackPressHandler di dalam bottom navigation
+                DoubleBackPressHandler(
+                    onFirstBackPress = {
+                        Toast.makeText(context, "Tekan sekali lagi untuk keluar", Toast.LENGTH_SHORT).show()
+                    },
+                    onSecondBackPress = {
+                        // Keluar dari aplikasi
+                        (context as? Activity)?.finish()
+                    }
+                )
+
                 FoolensBottomNavigation(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
-                            // Pop up to the start destination of the graph to
-                            // avoid building up a large stack of destinations
+                            // Hapus semua route sebelumnya
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true
                             }
-                            // Avoid multiple copies of the same destination when
-                            // reselecting the same item
+                            // Hindari multiple copies
                             launchSingleTop = true
-                            // Restore state when reselecting a previously selected item
                             restoreState = true
                         }
                     },
@@ -102,8 +115,7 @@ fun MainNavHost(navController: NavHostController) {
         navController = navController,
         startDestination = "splash"
     ) {
-        // ... Composables yang sudah ada (splash, landing, login, dll)
-
+        // Splash Screen - Entry point of the app
         composable("splash") {
             SplashScreen(
                 onNavigateToLanding = {
@@ -200,9 +212,8 @@ fun MainNavHost(navController: NavHostController) {
                     navController.popBackStack()
                 },
                 onLogout = {
-                    // Saat logout, kembali ke login screen (skip landing)
                     navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -259,7 +270,7 @@ fun MainNavHost(navController: NavHostController) {
 
         // Allergen detail screen
         composable("allergen_detail") {
-            // Gunakan allergen yang disimpan atau default empty allergen
+            // Use the allergen that was stored in navigation scope
             val allergen = selectedAllergen ?: UserAllergen(
                 id = 0,
                 name = "Unknown Allergen",
@@ -281,14 +292,18 @@ fun MainNavHost(navController: NavHostController) {
                 onClose = {
                     navController.popBackStack()
                 },
-                onSave = { severity, notes ->
-                    // Di sini akan memanggil ViewModel untuk update
-                    // Untuk demo kita hanya pop back
+                onSave = {
+                    // Set flag to refresh allergen list when navigating back
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("should_refresh_allergens", true)
                     navController.popBackStack()
                 },
                 onDelete = {
-                    // Di sini akan memanggil ViewModel untuk delete
-                    // Untuk demo kita hanya pop back
+                    // Set flag to refresh allergen list when navigating back
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("should_refresh_allergens", true)
                     navController.popBackStack()
                 }
             )
