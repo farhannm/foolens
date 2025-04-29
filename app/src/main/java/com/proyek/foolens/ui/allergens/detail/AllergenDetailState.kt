@@ -4,6 +4,7 @@ import com.proyek.foolens.domain.model.UserAllergen
 
 data class AllergenDetailState(
     val allergen: UserAllergen? = null,
+    val updatedAllergen: UserAllergen? = null,
     val userId: String = "",
     val severityLevel: Int = 1,
     val notes: String = "",
