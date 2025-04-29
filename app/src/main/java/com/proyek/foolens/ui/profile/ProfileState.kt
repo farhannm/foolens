@@ -11,6 +11,7 @@ data class ProfileState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    val isLoggedOut: Boolean = false,
 
     // Form fields
     val nameField: String = "",

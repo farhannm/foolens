@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.usecases.AuthUseCase
 import com.proyek.foolens.domain.usecases.ProfileUseCase
+import com.proyek.foolens.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +19,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val profileUseCase: ProfileUseCase
+    private val profileUseCase: ProfileUseCase,
+    private val authUseCase: AuthUseCase,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val TAG = "ProfileViewModel"
@@ -153,6 +157,47 @@ class ProfileViewModel @Inject constructor(
                         _state.update {
                             it.copy(isLoading = true)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Melakukan logout dan menghapus token
+     */
+    fun logout() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
+            authUseCase.logout().collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        // Clear token when logout is successful
+                        tokenManager.clearToken()
+
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = null,
+                                isLoggedOut = true
+                            )
+                        }
+                    }
+                    is NetworkResult.Error -> {
+                        // Even if there's an error with the API, still clear the token locally
+                        tokenManager.clearToken()
+
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Logout failed: ${result.errorMessage}",
+                                isLoggedOut = true // Still consider user logged out since token is cleared
+                            )
+                        }
+                    }
+                    is NetworkResult.Loading -> {
+                        _state.update { it.copy(isLoading = true) }
                     }
                 }
             }

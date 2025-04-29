@@ -76,6 +76,13 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    // Navigate to login when logout is successful
+    LaunchedEffect(state.isLoggedOut) {
+        if (state.isLoggedOut) {
+            onLogout()
+        }
+    }
+
     // Track if logout dialog is showing
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -327,7 +334,7 @@ fun ProfileScreen(
             onDismiss = { showLogoutDialog = false },
             onConfirm = {
                 showLogoutDialog = false
-                onLogout()
+                viewModel.logout() // Call ViewModel's logout method
             }
         )
     }
