@@ -47,10 +47,16 @@ class SplashViewModel @Inject constructor(
 
                     Log.d("SplashViewModel", "User Profile Fetch Result: $isUserProfileFetched")
 
+                    if (!isUserProfileFetched) {
+                        // If profile fetch fails but we have a token, clear the token as it might be invalid
+                        Log.d("SplashViewModel", "Token validation failed - clearing token")
+                        tokenManager.clearToken()
+                    }
+
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            isLoggedIn = true, // Force true if token exists
+                            isLoggedIn = isUserProfileFetched, // Only true if profile fetched successfully
                             errorMessage = if (!isUserProfileFetched) "Gagal memverifikasi profil" else null
                         )
                     }
@@ -65,6 +71,9 @@ class SplashViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("SplashViewModel", "Login status check failed", e)
+                // Clear any existing token on exception
+                tokenManager.clearToken()
+
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -101,5 +110,13 @@ class SplashViewModel @Inject constructor(
             Log.e("SplashViewModel", "User profile fetch exception", e)
             false
         }
+    }
+
+    /**
+     * Check if token is valid
+     * This uses the more comprehensive check with profile validation
+     */
+    fun isTokenValid(): Boolean {
+        return state.value.isLoggedIn
     }
 }

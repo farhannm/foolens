@@ -170,25 +170,25 @@ class ScanViewModel @Inject constructor(
             try {
                 // List alergen umum untuk deteksi offline
                 val offlineAllergens = mapOf(
-                    "susu" to Pair("Susu", 3),
-                    "milk" to Pair("Susu", 3),
-                    "dairy" to Pair("Susu", 3),
-                    "gandum" to Pair("Gandum", 2),
-                    "wheat" to Pair("Gandum", 2),
-                    "tepung" to Pair("Tepung", 2),
-                    "kacang" to Pair("Kacang", 3),
-                    "peanut" to Pair("Kacang Tanah", 3),
-                    "almond" to Pair("Almond", 2),
-                    "telur" to Pair("Telur", 2),
-                    "egg" to Pair("Telur", 2),
-                    "kedelai" to Pair("Kedelai", 2),
-                    "soy" to Pair("Kedelai", 2),
-                    "lesitin" to Pair("Lesitin (Kedelai)", 2),
-                    "lecithin" to Pair("Lesitin (Kedelai)", 2),
-                    "udang" to Pair("Udang", 3),
-                    "shrimp" to Pair("Udang", 3),
-                    "kepiting" to Pair("Kepiting", 3),
-                    "crab" to Pair("Kepiting", 3)
+                    "susu" to Triple("Susu", 3, "Milk, Dairy"),
+                    "milk" to Triple("Susu", 3, "Milk, Dairy"),
+                    "dairy" to Triple("Susu", 3, "Milk, Dairy"),
+                    "gandum" to Triple("Gandum", 2, "Wheat"),
+                    "wheat" to Triple("Gandum", 2, "Wheat"),
+                    "tepung" to Triple("Tepung", 2, "Flour"),
+                    "kacang" to Triple("Kacang", 3, "Nuts"),
+                    "peanut" to Triple("Kacang Tanah", 3, "Groundnut"),
+                    "almond" to Triple("Almond", 2, ""),
+                    "telur" to Triple("Telur", 2, "Egg"),
+                    "egg" to Triple("Telur", 2, "Egg"),
+                    "kedelai" to Triple("Kedelai", 2, "Soy"),
+                    "soy" to Triple("Kedelai", 2, "Soy"),
+                    "lesitin" to Triple("Lesitin (Kedelai)", 2, "Lecithin"),
+                    "lecithin" to Triple("Lesitin (Kedelai)", 2, "Lecithin"),
+                    "udang" to Triple("Udang", 3, "Shrimp"),
+                    "shrimp" to Triple("Udang", 3, "Shrimp"),
+                    "kepiting" to Triple("Kepiting", 3, "Crab"),
+                    "crab" to Triple("Kepiting", 3, "Crab")
                 )
 
                 val detectedAllergens = mutableListOf<com.proyek.foolens.domain.model.Allergen>()
@@ -200,14 +200,15 @@ class ScanViewModel @Inject constructor(
                     val regex = "\\b$keyword\\b".toRegex()
                     if (regex.containsMatchIn(lowerCaseText)) {
                         // Tambahkan ke list deteksi jika belum ada
-                        val (name, severity) = allergenInfo
+                        val (name, severity, alternativeNames) = allergenInfo
                         if (detectedAllergens.none { it.name == name }) {
                             detectedAllergens.add(
                                 com.proyek.foolens.domain.model.Allergen(
                                     id = detectedAllergens.size + 1,
                                     name = name,
                                     severityLevel = severity,
-                                    description = "Terdeteksi dalam teks OCR"
+                                    description = "Terdeteksi dalam teks OCR",
+                                    alternativeNames = if(alternativeNames.isNotEmpty()) alternativeNames else null
                                 )
                             )
                         }
