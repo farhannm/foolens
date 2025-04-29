@@ -78,9 +78,10 @@ abstract class AppModule {
         @Provides
         @Singleton
         fun provideUserAllergenUseCase(
-            userAllergenRepository: UserAllergenRepository
+            userAllergenRepository: UserAllergenRepository,
+            allergenRepository: AllergenRepository
         ): UserAllergenUseCase {
-            return UserAllergenUseCase(userAllergenRepository)
+            return UserAllergenUseCase(userAllergenRepository, allergenRepository)
         }
 
         @Provides

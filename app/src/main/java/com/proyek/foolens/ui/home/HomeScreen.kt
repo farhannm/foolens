@@ -233,23 +233,23 @@ fun HomeContent(
                 color = Color.Gray
             )
 
-            Row {
-                IconButton(onClick = onRefresh) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = Color.Gray
-                    )
-                }
-
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Logout",
-                        tint = Color.Gray
-                    )
-                }
-            }
+//            Row {
+//                IconButton(onClick = onRefresh) {
+//                    Icon(
+//                        imageVector = Icons.Default.Refresh,
+//                        contentDescription = "Refresh",
+//                        tint = Color.Gray
+//                    )
+//                }
+//
+//                IconButton(onClick = onLogout) {
+//                    Icon(
+//                        imageVector = Icons.Default.ExitToApp,
+//                        contentDescription = "Logout",
+//                        tint = Color.Gray
+//                    )
+//                }
+//            }
         }
 
         // Row for greeting and profile image

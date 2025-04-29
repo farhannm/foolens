@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.usecases.AuthUseCase
+import com.proyek.foolens.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val authUseCase: AuthUseCase
+    private val authUseCase: AuthUseCase,
+    private val tokenManager: TokenManager  // Inject TokenManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -61,7 +63,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Melakukan logout langsung ke API
+     * Melakukan logout langsung ke API dan menghapus token
      */
     fun logout() {
         viewModelScope.launch {
@@ -70,6 +72,9 @@ class HomeViewModel @Inject constructor(
             authUseCase.logout().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
+                        // Clear token when logout is successful
+                        tokenManager.clearToken()
+
                         _state.update {
                             it.copy(
                                 user = null,
@@ -79,7 +84,9 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is NetworkResult.Error -> {
-                        // Even if there's an error, clear the user locally
+                        // Even if there's an error with the API, still clear the token locally
+                        tokenManager.clearToken()
+
                         _state.update {
                             it.copy(
                                 user = null,
