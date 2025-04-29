@@ -108,7 +108,8 @@ class AllergenRepositoryImpl @Inject constructor(
                     id = dto.id,
                     name = allergenName,
                     severityLevel = dto.severityLevel ?: 2,
-                    description = dto.description
+                    description = dto.description,
+                    alternativeNames = null
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating fallback allergen for ID ${dto.id}: ${e.message}")

@@ -4,7 +4,8 @@ data class Allergen(
     val id: Int,
     val name: String,
     val severityLevel: Int,
-    val description: String?
+    val description: String?,
+    val alternativeNames: String?
 )
 
 data class AllergenDetectionResult(

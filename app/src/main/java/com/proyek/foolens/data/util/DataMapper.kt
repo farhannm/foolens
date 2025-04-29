@@ -73,7 +73,8 @@ object DataMapper {
             id = dto.id,
             name = finalName,
             severityLevel = dto.severityLevel ?: 0,
-            description = dto.description
+            description = dto.description,
+            alternativeNames = dto.alternativeNames
         )
     }
 

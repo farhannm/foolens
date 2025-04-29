@@ -18,5 +18,6 @@ data class AllergenDto(
     @SerializedName("name") val name: String?,
     @SerializedName("allergen_name") val allergenName: String?,
     @SerializedName("description") val description: String?,
-    @SerializedName("severity_level") val severityLevel: Int?
+    @SerializedName("severity_level") val severityLevel: Int?,
+    @SerializedName("alternative_names") val alternativeNames: String? = null
 )

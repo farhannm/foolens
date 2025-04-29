@@ -1,14 +1,37 @@
 package com.proyek.foolens.domain.usecases
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.UserAllergen
+import com.proyek.foolens.domain.repository.AllergenRepository
 import com.proyek.foolens.domain.repository.UserAllergenRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class UserAllergenUseCase @Inject constructor(
-    private val userAllergenRepository: UserAllergenRepository
+    private val userAllergenRepository: UserAllergenRepository,
+    private val allergenRepository: AllergenRepository
 ) {
+
+    /**
+     * Get all available allergens
+     *
+     * @return Flow<NetworkResult<List<Allergen>>> list of all allergens
+     */
+    suspend fun getAllAllergens(): Flow<NetworkResult<List<Allergen>>> {
+        return allergenRepository.getAllAllergens()
+    }
+
+    /**
+     * Search allergens by name or description
+     *
+     * @param query The search query
+     * @return Flow<NetworkResult<List<Allergen>>> list of matching allergens
+     */
+    suspend fun searchAllergens(query: String): Flow<NetworkResult<List<Allergen>>> {
+        return allergenRepository.searchAllergensByName(query)
+    }
+
     /**
      * Mendapatkan daftar alergen yang dimiliki oleh pengguna
      *

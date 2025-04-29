@@ -1,5 +1,14 @@
 package com.proyek.foolens.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,11 +27,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,10 +95,31 @@ fun AllergenItemExpandable(
     isExpanded: Boolean,
     onClick: () -> Unit
 ) {
+    // Create a transition that tracks the isExpanded state
+    val transition = updateTransition(targetState = isExpanded, label = "expandTransition")
+
+    // Animate the rotation of the chevron icon
+    val iconRotation by transition.animateFloat(
+        label = "iconRotation",
+        transitionSpec = { tween(durationMillis = 300) }
+    ) { expanded ->
+        if (expanded) 180f else 0f
+    }
+
+    // Create AnimatedVisibility state for content
+    val visibleState = remember {
+        MutableTransitionState(false).apply {
+            targetState = isExpanded
+        }
+    }
+
+    // Update the target state when isExpanded changes
+    visibleState.targetState = isExpanded
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 8.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
@@ -98,9 +132,9 @@ fun AllergenItemExpandable(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(24.dp)
         ) {
-            // Header row with allergen name and expand icon
+            // Header row with allergen name and animate chevron icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -113,55 +147,76 @@ fun AllergenItemExpandable(
                     modifier = Modifier.weight(1f)
                 )
 
+                // Animated rotation for the chevron icon
                 Icon(
-                    painter = painterResource(
-                        id = if (isExpanded) R.drawable.ic_chevron_up else R.drawable.ic_chevron_down
-                    ),
+                    painter = painterResource(id = R.drawable.ic_chevron_down),
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
                     tint = Color.Gray,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(iconRotation)
                 )
             }
 
-            // Expanded content
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Description if available
-                allergen.description?.let { description ->
-                    Text(
-                        text = description,
-                        fontSize = 14.sp,
-                        color = Color.DarkGray
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-
-                // Category
-                Text(
-                    text = "Category: ${allergen.category.name}",
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
-
-                // Severity level if available
-                allergen.severityLevel?.let { severity ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Severity: $severity",
-                        fontSize = 14.sp,
-                        color = Color.DarkGray
-                    )
-                }
-
-                // Notes if available
-                allergen.notes?.let { notes ->
-                    if (notes.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
+            // Animated visibility for expanded content
+            AnimatedVisibility(
+                visibleState = visibleState,
+                enter = fadeIn(animationSpec = tween(300)) +
+                        expandVertically(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)) +
+                        shrinkVertically(animationSpec = tween(300))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    // Description if available
+                    allergen.description?.let { description ->
                         Text(
-                            text = "Notes: $notes",
+                            text = description,
                             fontSize = 14.sp,
                             color = Color.DarkGray
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Only show category if name is not empty
+                    if (allergen.category.name.isNotEmpty()) {
+                        Text(
+                            text = "Category: ${allergen.category.name}",
+                            fontSize = 14.sp,
+                            color = Color.DarkGray
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    // Alternatives section
+                    Text(
+                        text = "Alternatives",
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 10.dp),
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Display alternatives
+                    if (allergen.alternativeNames != null && allergen.alternativeNames.isNotEmpty()) {
+                        Text(
+                            text = allergen.alternativeNames ?: "Tidak ada nama alternatif",
+                            fontSize = 14.sp,
+                            color = Color.Blue,
+                            fontWeight = FontWeight.Normal,
+                            fontStyle = FontStyle.Italic
+                        )
+                    } else {
+                        // Default for Gluten
+                        Text(
+                            text = "No known alternatives",
+                            fontSize = 14.sp,
+                            color = Color.Gray
                         )
                     }
                 }
