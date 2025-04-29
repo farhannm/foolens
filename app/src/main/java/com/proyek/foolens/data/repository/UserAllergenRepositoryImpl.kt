@@ -2,6 +2,7 @@ package com.proyek.foolens.data.repository
 
 import android.util.Log
 import com.proyek.foolens.data.remote.api.ApiService
+import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.util.DataMapper
 import com.proyek.foolens.data.util.NetworkResult
@@ -149,9 +150,11 @@ class UserAllergenRepositoryImpl @Inject constructor(
         emit(NetworkResult.Loading)
 
         try {
-            val requestBody = mutableMapOf<String, Any>()
-            severityLevel?.let { requestBody["severity_level"] = it.toString() }
-            notes?.let { requestBody["notes"] = it }
+            // Create a type-safe request object instead of a Map
+            val requestBody = UpdateUserAllergenRequest(
+                severityLevel = severityLevel?.toString(),
+                notes = notes
+            )
 
             Log.d(TAG, "Updating allergen ID $allergenId for user $userId with data: $requestBody")
 
