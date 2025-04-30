@@ -47,13 +47,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil3.compose.AsyncImage
 import com.proyek.foolens.R
 import com.proyek.foolens.ui.component.ConfirmationDialog
 import com.proyek.foolens.ui.theme.Typography
+import com.proyek.foolens.util.ImageUtils
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -69,6 +72,10 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current  // Add this line to get context
+
+    // Create image loader
+    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
 
     // Track if logout dialog is showing
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -212,6 +219,9 @@ fun HomeContent(
     onProfileClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
+
 
     Column(
         modifier = Modifier
@@ -286,14 +296,32 @@ fun HomeContent(
                 modifier = Modifier
                     .clickable(onClick = onProfileClick)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.profile_image),
-                    contentDescription = "Profile Image",
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                // Replace the static Image with AsyncImage
+                if (state.user?.profilePicture != null && state.user.profilePicture.isNotEmpty()) {
+                    AsyncImage(
+                        model = ImageUtils.createProfileImageRequest(
+                            context,
+                            state.user.profilePicture,
+                            R.drawable.profile_image
+                        ),
+                        contentDescription = "Profile Image",
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        imageLoader = imageLoader
+                    )
+                } else {
+                    // Fallback to default image if no profile picture is available
+                    Image(
+                        painter = painterResource(id = R.drawable.profile_image),
+                        contentDescription = "Profile Image",
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
 
@@ -326,7 +354,7 @@ fun HomeContent(
                 InfoRow(label = "Name", value = state.user?.name ?: "-")
                 InfoRow(label = "Email", value = state.user?.email ?: "-")
                 InfoRow(label = "Phone", value = state.user?.phone ?: "-")
-                InfoRow(label = "User ID", value = state.user?.id ?: "-")
+                InfoRow(label = "User ID", value = state.user?.id.toString() ?: "-")
             }
         }
     }

@@ -61,6 +61,7 @@ class AuthRepositoryImpl @Inject constructor(
                             name = userDto.data.name,
                             email = userDto.data.email,
                             phone = userDto.data.phoneNumber ?: "",
+                            profilePicture = userDto.data.profilePicture,
                             token = token
                         )
 
@@ -186,6 +187,7 @@ class AuthRepositoryImpl @Inject constructor(
                             name = userDto.data.name,
                             email = userDto.data.email,
                             phone = phoneNumber,
+                            profilePicture = null,
                             token = token
                         )
 
@@ -285,6 +287,7 @@ class AuthRepositoryImpl @Inject constructor(
                         name = userDto.data.name,
                         email = userDto.data.email,
                         phone = userDto.data.phoneNumber ?: "",
+                        profilePicture = userDto.data.profilePicture,
                         token = tokenManager.getToken()
                     )
                     currentUser = user

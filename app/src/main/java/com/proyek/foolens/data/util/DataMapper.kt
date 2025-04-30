@@ -27,6 +27,7 @@ object DataMapper {
             name = dto.data.name,
             email = dto.data.email,
             phone = dto.data.phoneNumber ?: "",
+            profilePicture = dto.data.profilePicture ?: "",
             token = dto.data.token ?: ""
         )
     }

@@ -25,6 +25,9 @@ data class UserDto(
         @SerializedName("phone_number")
         val phoneNumber: String? = null,
 
+        @SerializedName("profile_picture")
+        val profilePicture: String? = null,
+
         @SerializedName("access_token")
         val token: String? = null,
 
