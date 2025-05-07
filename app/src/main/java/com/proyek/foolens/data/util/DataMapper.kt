@@ -4,11 +4,13 @@ import android.util.Log
 import com.proyek.foolens.data.remote.dto.AllergenCategoryDto
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenDto
+import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.UserAllergenDto
 import com.proyek.foolens.data.remote.dto.UserDto
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.AllergenDetectionResult
+import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.User
 import com.proyek.foolens.domain.model.UserAllergen
 
@@ -154,6 +156,33 @@ object DataMapper {
             id = dto.id,
             name = dto.name ?: "Unknown",  // Provide default for null name
             icon = dto.icon
+        )
+    }
+
+    /**
+     * Maps ProductScanResponse to ProductScanResult domain model
+     */
+    fun mapProductScanResponseToDomain(response: ProductScanResponse, barcode: String): ProductScanResult {
+        // Map product if found
+        val product = response.product?.toProduct()
+
+        // Map detected allergens
+        val detectedAllergens = response.detectedAllergens?.map { allergenDto ->
+            Allergen(
+                id = allergenDto.id.toIntOrNull() ?: 0,
+                name = allergenDto.name,
+                severityLevel = (allergenDto.confidenceLevel * 3).toInt().coerceIn(1, 3), // Convert confidence to severity 1-3
+                description = null,
+                alternativeNames = null
+            )
+        } ?: emptyList()
+
+        return ProductScanResult(
+            scannedBarcode = response.scannedBarcode ?: barcode,
+            found = response.found,
+            product = product,
+            detectedAllergens = detectedAllergens,
+            hasAllergens = response.hasAllergens ?: (detectedAllergens.isNotEmpty())
         )
     }
 }

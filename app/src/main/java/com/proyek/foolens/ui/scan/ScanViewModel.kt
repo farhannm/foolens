@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.usecases.AllergenUseCase
+import com.proyek.foolens.domain.usecases.ProductUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
-    private val allergenUseCase: AllergenUseCase
+    private val allergenUseCase: AllergenUseCase,
+    private val productUseCase: ProductUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScanState())
@@ -28,22 +30,34 @@ class ScanViewModel @Inject constructor(
     // To prevent multiple API calls in quick succession
     private val isProcessingRequest = AtomicBoolean(false)
 
-    // Keep track of last processed text to avoid repeated processing
+    // For OCR scanning
     private var lastProcessedText = ""
     private var lastApiRequestTime = 0L
     private val apiThrottleTime = 3000L // 3 seconds between API calls
 
+    // For barcode scanning
+    private var lastProcessedBarcode = ""
+    private var lastBarcodeApiRequestTime = 0L
+
     // Cache detected allergens to reduce repeated API calls
     private val recentAllergenDetections = mutableMapOf<String, List<com.proyek.foolens.domain.model.Allergen>>()
+
+    /**
+     * Change the scan mode
+     */
+    fun setScanMode(mode: ScanMode) {
+        _state.update { it.copy(currentScanMode = mode) }
+        Log.d(TAG, "Scan mode changed to: $mode")
+    }
 
     /**
      * Mendeteksi alergen dari teks OCR menggunakan API
      * Falls back to offline detection if the API call fails
      */
     fun detectAllergens(ocrText: String) {
-        // Skip jika scanning di-pause sementara (karena dialog muncul)
-        if (_state.value.temporaryPauseScan) {
-            Log.d(TAG, "Skipping allergen detection because scanning is temporarily paused")
+        // Skip if scan mode is not allergen or scanning is paused
+        if (_state.value.currentScanMode != ScanMode.ALLERGEN || _state.value.temporaryPauseScan) {
+            Log.d(TAG, "Skipping allergen detection because wrong mode or scanning is paused")
             return
         }
 
@@ -67,19 +81,18 @@ class ScanViewModel @Inject constructor(
                         hasAllergens = true,
                         showAllergenAlert = true,
                         showSafeProductAlert = false,
-                        temporaryPauseScan = true // Hentikan scanning sementara ketika dialog muncul
+                        temporaryPauseScan = true
                     )
                 }
                 return
             } else {
-                // Jika cache menunjukkan tidak ada allergen
                 _state.update {
                     it.copy(
                         detectedAllergens = emptyList(),
                         hasAllergens = false,
                         showAllergenAlert = false,
                         showSafeProductAlert = true,
-                        temporaryPauseScan = true // Hentikan scanning sementara ketika dialog muncul
+                        temporaryPauseScan = true
                     )
                 }
                 return
@@ -142,9 +155,9 @@ class ScanViewModel @Inject constructor(
     }
 
     fun detectAllergensOffline(ocrText: String) {
-        // Skip jika scanning di-pause sementara (karena dialog muncul)
-        if (_state.value.temporaryPauseScan) {
-            Log.d(TAG, "Skipping offline allergen detection because scanning is temporarily paused")
+        // Skip if scan mode is not allergen or scanning is paused
+        if (_state.value.currentScanMode != ScanMode.ALLERGEN || _state.value.temporaryPauseScan) {
+            Log.d(TAG, "Skipping offline allergen detection because wrong mode or scanning is paused")
             return
         }
 
@@ -247,6 +260,86 @@ class ScanViewModel @Inject constructor(
     }
 
     /**
+     * Scan product barcode and get product information
+     */
+    fun scanProductBarcode(barcode: String) {
+        // Skip if scan mode is not barcode or scanning is paused
+        if (_state.value.currentScanMode != ScanMode.BARCODE || _state.value.temporaryPauseScan) {
+            Log.d(TAG, "Skipping barcode scan because wrong mode or scanning is paused")
+            return
+        }
+
+        // Skip if already processing or barcode is the same as last processed
+        val currentTime = System.currentTimeMillis()
+        if (isProcessingRequest.get() ||
+            (currentTime - lastBarcodeApiRequestTime < apiThrottleTime) ||
+            barcode == lastProcessedBarcode) {
+            return
+        }
+
+        // Set processing flag and update time
+        isProcessingRequest.set(true)
+        lastBarcodeApiRequestTime = currentTime
+        lastProcessedBarcode = barcode
+
+        viewModelScope.launch {
+            _state.update { it.copy(isProcessing = true, errorMessage = null) }
+
+            try {
+                productUseCase.scanProductBarcode(barcode).collect { result ->
+                    when (result) {
+                        is NetworkResult.Success -> {
+                            val scanResult = result.data
+                            _state.update {
+                                it.copy(
+                                    isProcessing = false,
+                                    product = scanResult.product,
+                                    scannedBarcode = scanResult.scannedBarcode,
+                                    productFound = scanResult.found,
+                                    detectedAllergens = scanResult.detectedAllergens ?: emptyList(),
+                                    hasAllergens = scanResult.hasAllergens ?: false,
+                                    showProductFoundDialog = scanResult.found,
+                                    showProductNotFoundDialog = !scanResult.found,
+                                    errorMessage = null,
+                                    temporaryPauseScan = true // Pause scanning when dialog appears
+                                )
+                            }
+                        }
+                        is NetworkResult.Error -> {
+                            Log.e(TAG, "Error scanning barcode: ${result.errorMessage}")
+                            _state.update {
+                                it.copy(
+                                    isProcessing = false,
+                                    errorMessage = result.errorMessage,
+                                    showProductNotFoundDialog = true,
+                                    temporaryPauseScan = true
+                                )
+                            }
+                        }
+                        is NetworkResult.Loading -> {
+                            _state.update { it.copy(isProcessing = true) }
+                        }
+                    }
+
+                    // Clear processing flag
+                    isProcessingRequest.set(false)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception scanning barcode: ${e.message}")
+                _state.update {
+                    it.copy(
+                        isProcessing = false,
+                        errorMessage = "Error: ${e.message}",
+                        showProductNotFoundDialog = true,
+                        temporaryPauseScan = true
+                    )
+                }
+                isProcessingRequest.set(false)
+            }
+        }
+    }
+
+    /**
      * Generate a simple cache key for similar text detection
      */
     private fun generateCacheKey(text: String): String {
@@ -298,6 +391,20 @@ class ScanViewModel @Inject constructor(
      */
     fun dismissSafeProductAlert() {
         _state.update { it.copy(showSafeProductAlert = false, temporaryPauseScan = false) }
+    }
+
+    /**
+     * Dismiss product found dialog and resume scanning
+     */
+    fun dismissProductFoundDialog() {
+        _state.update { it.copy(showProductFoundDialog = false, temporaryPauseScan = false) }
+    }
+
+    /**
+     * Dismiss product not found dialog and resume scanning
+     */
+    fun dismissProductNotFoundDialog() {
+        _state.update { it.copy(showProductNotFoundDialog = false, temporaryPauseScan = false) }
     }
 
     /**

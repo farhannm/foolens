@@ -30,6 +30,9 @@ object Constants {
     const val ENDPOINT_UPDATE_USER_ALLERGEN = "users/{user_id}/allergens/{allergen_id}"
     const val ENDPOINT_DELETE_USER_ALLERGEN = "users/{user_id}/allergens/{allergen_id}"
 
+    //Product Scan
+    const val ENDPOINT_SCAN_PRODUCT_BARCODE = "products/scan"
+
     // Product Safety Statistics Endpoint
     const val ENDPOINT_PRODUCT_SAFETY_STATS = "users/{user_id}/product-safety-stats"
 

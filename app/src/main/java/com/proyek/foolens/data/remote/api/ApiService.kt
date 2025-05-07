@@ -2,6 +2,7 @@ package com.proyek.foolens.data.remote.api
 
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenResponse
+import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.ProfileResponse
 import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
@@ -89,4 +90,37 @@ interface ApiService {
         @Path("user_id") userId: String,
         @Path("allergen_id") allergenId: Int
     ): Response<Map<String, Any>>
+
+    @POST(Constants.ENDPOINT_SCAN_PRODUCT_BARCODE)
+    suspend fun scanProductBarcode(
+        @Body barcodeRequest: Map<String, String>
+    ): Response<ProductScanResponse>
+
+    // Product safety statistics endpoint
+    @GET(Constants.ENDPOINT_PRODUCT_SAFETY_STATS)
+    suspend fun getProductSafetyStats(
+        @Path("user_id") userId: String,
+        @Query("include_categories") includeCategories: Boolean = false
+    ): Response<Map<String, Any>>
+
+    // Scan history endpoints
+    @POST(Constants.ENDPOINT_SAVE_SCAN)
+    suspend fun saveScan(
+        @Body scanRequest: Map<String, Any>
+    ): Response<Map<String, Any>>
+
+    @DELETE(Constants.ENDPOINT_DELETE_SCAN)
+    suspend fun deleteScan(
+        @Path("scan_id") scanId: Int
+    ): Response<Map<String, Any>>
+
+    @GET(Constants.ENDPOINT_GET_SCAN_HISTORY)
+    suspend fun getScanHistory(
+        @Query("limit") limit: Int = Constants.DEFAULT_PAGE_SIZE,
+        @Query("page") page: Int = Constants.DEFAULT_PAGE_NUMBER,
+        @Query("safety_filter") safetyFilter: String? = null
+    ): Response<Map<String, Any>>
+
+    @GET(Constants.ENDPOINT_GET_SCAN_COUNT)
+    suspend fun getTodayScanCount(): Response<Map<String, Any>>
 }

@@ -5,10 +5,12 @@ import com.proyek.foolens.DefaultAppInitializer
 import com.proyek.foolens.data.remote.api.ApiService
 import com.proyek.foolens.data.repository.AllergenRepositoryImpl
 import com.proyek.foolens.data.repository.AuthRepositoryImpl
+import com.proyek.foolens.data.repository.ProductRepositoryImpl
 import com.proyek.foolens.data.repository.ProfileRepositoryImpl
 import com.proyek.foolens.data.repository.UserAllergenRepositoryImpl
 import com.proyek.foolens.domain.repository.AllergenRepository
 import com.proyek.foolens.domain.repository.AuthRepository
+import com.proyek.foolens.domain.repository.ProductRepository
 import com.proyek.foolens.domain.repository.ProfileRepository
 import com.proyek.foolens.domain.repository.UserAllergenRepository
 import com.proyek.foolens.domain.usecases.AllergenUseCase
@@ -44,6 +46,12 @@ abstract class AppModule {
     abstract fun bindUserAllergenRepository(
         userAllergenRepositoryImpl: UserAllergenRepositoryImpl
     ): UserAllergenRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProductRepository(
+        productRepositoryImpl: ProductRepositoryImpl
+    ): ProductRepository
 
     @Binds
     @Singleton
