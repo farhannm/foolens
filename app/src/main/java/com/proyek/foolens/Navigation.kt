@@ -37,7 +37,9 @@ import com.proyek.foolens.ui.component.BottomNavItem
 import com.proyek.foolens.ui.component.FoolensBottomNavigation
 import com.proyek.foolens.ui.home.HomeScreen
 import com.proyek.foolens.ui.landing.LandingScreen
+import com.proyek.foolens.ui.profile.EditProfileScreen
 import com.proyek.foolens.ui.profile.ProfileScreen
+import com.proyek.foolens.ui.profile.ProfileViewModel
 import com.proyek.foolens.ui.scan.ScanScreen
 import com.proyek.foolens.ui.splash.SplashScreen
 import com.proyek.foolens.util.DoubleBackPressHandler
@@ -207,15 +209,26 @@ fun MainNavHost(navController: NavHostController) {
 
         // Profile screen
         composable("profile") {
+            val viewModel: ProfileViewModel = hiltViewModel()
             ProfileScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
+                onBack = { navController.popBackStack() },
                 onLogout = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onEditProfile = {
+                    navController.navigate("edit_profile")
                 }
+            )
+        }
+
+        // Edit Profile screen
+        composable("edit_profile") {
+            val viewModel: ProfileViewModel = hiltViewModel()
+            EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = viewModel
             )
         }
 

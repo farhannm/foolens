@@ -1,5 +1,4 @@
 package com.proyek.foolens.domain.repository
-
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenDetectionResult

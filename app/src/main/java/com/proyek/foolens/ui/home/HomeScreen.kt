@@ -56,7 +56,7 @@ import coil3.compose.AsyncImage
 import com.proyek.foolens.R
 import com.proyek.foolens.ui.component.ConfirmationDialog
 import com.proyek.foolens.ui.theme.Typography
-import com.proyek.foolens.util.ImageUtils
+import com.proyek.foolens.data.util.ImageUtils
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate

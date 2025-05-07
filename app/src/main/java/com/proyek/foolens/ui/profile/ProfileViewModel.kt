@@ -52,7 +52,6 @@ class ProfileViewModel @Inject constructor(
                                 profile = result.data,
                                 isLoading = false,
                                 errorMessage = null,
-                                // Update form fields with current data
                                 nameField = result.data.name,
                                 phoneField = result.data.phoneNumber ?: ""
                             )
@@ -88,6 +87,10 @@ class ProfileViewModel @Inject constructor(
      */
     fun updatePhoneField(phone: String) {
         _state.update { it.copy(phoneField = phone) }
+    }
+
+    fun clearSelectedImageUri() {
+        _state.update { it.copy(selectedImageUri = null) }
     }
 
     /**

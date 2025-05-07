@@ -1,4 +1,4 @@
-package com.proyek.foolens.util
+package com.proyek.foolens.data.util
 
 import android.content.Context
 import android.util.Log
@@ -9,6 +9,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.request.error
 import coil3.request.placeholder
+import com.proyek.foolens.util.Constants
 import okhttp3.OkHttpClient
 
 /**

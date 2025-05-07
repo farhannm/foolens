@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,17 +18,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,17 +52,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.proyek.foolens.R
 import com.proyek.foolens.ui.component.ConfirmationDialog
-import com.proyek.foolens.util.ImageUtils
+import com.proyek.foolens.data.util.ImageUtils
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 
@@ -69,12 +69,18 @@ import java.io.FileOutputStream
 fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onEditProfile: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    // Muat ulang data profil saat halaman ditampilkan
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+    }
 
     // Navigate to login when logout is successful
     LaunchedEffect(state.isLoggedOut) {
@@ -92,17 +98,19 @@ fun ProfileScreen(
     ) { uri: Uri? ->
         uri?.let {
             try {
-                // Create temporary file
                 val file = File(context.cacheDir, "profile_image_${System.currentTimeMillis()}.jpg")
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val outputStream = FileOutputStream(file)
                 inputStream?.use { input ->
                     outputStream.use { output ->
-                        input.copyTo(output)
+                        val buffer = ByteArray(1024) // Buffer sebesar 1KB
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                        }
+                        output.flush()
                     }
                 }
-
-                // Set the selected image in ViewModel
                 viewModel.setSelectedImageUri(uri, file)
             } catch (e: Exception) {
                 scope.launch {
@@ -138,19 +146,27 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(
+                    text = "Profile",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.Default.KeyboardArrowLeft,
                             contentDescription = "Back"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black
-                )
+                actions = {
+                    IconButton(onClick = onEditProfile) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile",
+                            tint = Color.Black
+                        )
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -169,156 +185,109 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 24.dp)
                 ) {
-                    // Profile header with image
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box {
-                                // Profile image with edit icon overlay
-                                if (state.selectedImageUri != null) {
-                                    // Show selected image
-                                    AsyncImage(
-                                        model = state.selectedImageUri,
-                                        contentDescription = "Selected Profile Picture",
-                                        modifier = Modifier
-                                            .size(120.dp)
-                                            .clip(CircleShape),
-                                        contentScale = ContentScale.Crop,
-                                        imageLoader = imageLoader
-                                    )
-                                } else if (!state.profile?.profilePicture.isNullOrEmpty()) {
-                                    // Show current profile picture from URL
-                                    AsyncImage(
-                                        model = ImageUtils.createProfileImageRequest(
-                                            context,
-                                            state.profile?.profilePicture,
-                                            R.drawable.profile_image
-                                        ),
-                                        contentDescription = "Profile Picture",
-                                        modifier = Modifier
-                                            .size(120.dp)
-                                            .clip(CircleShape),
-                                        contentScale = ContentScale.Crop,
-                                        imageLoader = imageLoader
-                                    )
-                                } else {
-                                    // Show default profile image
-                                    Image(
-                                        painter = painterResource(id = R.drawable.profile_image),
-                                        contentDescription = "Default Profile Image",
-                                        modifier = Modifier
-                                            .size(120.dp)
-                                            .clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
+                        // Profile picture on the left
+                        if (!state.profile?.profilePicture.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}",
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                imageLoader = imageLoader
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.profile_image),
+                                contentDescription = "Default Profile Image",
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
-                                // Edit icon overlay
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .align(Alignment.BottomEnd)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFC7F131))
-                                        .clickable {
-                                            imagePickerLauncher.launch("image/*")
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit Profile Picture",
-                                        tint = Color.Black,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
+                        // Name and email on the right
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .weight(1f)
+                        ) {
+                            Text(
+                                text = state.profile?.name ?: "",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp),
+                                color = Color.Black
+                            )
+                            Text(
+                                text = state.profile?.email ?: "",
+                                fontSize = 14.sp,
+                                color = Color(0xFF1E88E5),
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
 
-                    // Name field
-                    OutlinedTextField(
-                        value = state.nameField,
-                        onValueChange = { viewModel.updateNameField(it) },
-                        label = { Text("Nama") },
+                    // Phone label and number
+                    Text(
+                        text = "No telepon",
+                        fontSize = 16.sp,
+                        color = Color.Gray,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        singleLine = true
+                            .padding(top = 30.dp, bottom = 4.dp),
+                        textAlign = TextAlign.Left
+                    )
+                    Text(
+                        text = state.profile?.phoneNumber ?: "",
+                        fontSize = 16.sp,
+                        color = Color.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        textAlign = TextAlign.Left
                     )
 
-                    // Email field (read-only)
-                    OutlinedTextField(
-                        value = state.profile?.email ?: "",
-                        onValueChange = { },
-                        label = { Text("Email") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        singleLine = true,
-                        enabled = false
-                    )
+                    Spacer(modifier = Modifier.weight(1f))
 
-                    // Phone field
-                    OutlinedTextField(
-                        value = state.phoneField,
-                        onValueChange = { viewModel.updatePhoneField(it) },
-                        label = { Text("No Telepon") },
+                    // Logout button at bottom-left
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        singleLine = true
-                    )
-
-                    // Save button
-                    Button(
-                        onClick = { viewModel.saveProfile() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp)
-                            .height(48.dp),
-                        enabled = !state.isLoading,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFC7F131),
-                            contentColor = Color.Black
-                        )
+                            .fillMaxSize()
+                            .padding(bottom = 16.dp, start = 10.dp),
+                        contentAlignment = Alignment.BottomStart
                     ) {
-                        Text(
-                            text = "Simpan Perubahan",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Logout button
-                    Button(
-                        onClick = { showLogoutDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = "Logout",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Box(
+                            modifier = Modifier
+                                .height(48.dp)
+                                .padding(end = 2.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .clickable {
+                                    showLogoutDialog = true
+                                }
+                        ) {
+                            Text(
+                                text = "Logout",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                                color = Color.Red,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
                     }
                 }
             }
@@ -334,7 +303,7 @@ fun ProfileScreen(
             onDismiss = { showLogoutDialog = false },
             onConfirm = {
                 showLogoutDialog = false
-                viewModel.logout() // Call ViewModel's logout method
+                viewModel.logout()
             }
         )
     }
