@@ -11,6 +11,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import com.proyek.foolens.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,15 +206,16 @@ fun ScanScreen(
             TabRow(
                 selectedTabIndex = if (state.currentScanMode == ScanMode.ALLERGEN) 0 else 1,
                 containerColor = Color.White,
-                contentColor = Color(0xFF5B6EE1)
+                contentColor = Color(0xFF062207)
             ) {
                 Tab(
                     selected = state.currentScanMode == ScanMode.ALLERGEN,
                     onClick = { viewModel.setScanMode(ScanMode.ALLERGEN) },
                     text = {
                         Text(
-                            text = "Allergen Scan",
-                            fontWeight = if (state.currentScanMode == ScanMode.ALLERGEN) FontWeight.Bold else FontWeight.Normal
+                            text = "Ingredients",
+                            fontWeight = if (state.currentScanMode == ScanMode.ALLERGEN) FontWeight.Bold else FontWeight.Normal,
+                            color = if (state.currentScanMode == ScanMode.ALLERGEN) Color(0xFF062207) else Color(0xFFA3A4A3)
                         )
                     }
                 )
@@ -220,8 +224,9 @@ fun ScanScreen(
                     onClick = { viewModel.setScanMode(ScanMode.BARCODE) },
                     text = {
                         Text(
-                            text = "Barcode Scan",
-                            fontWeight = if (state.currentScanMode == ScanMode.BARCODE) FontWeight.Bold else FontWeight.Normal
+                            text = "Barcode",
+                            fontWeight = if (state.currentScanMode == ScanMode.BARCODE) FontWeight.Bold else FontWeight.Normal,
+                            color = if (state.currentScanMode == ScanMode.BARCODE) Color(0xFF062207) else Color(0xFFA3A4A3)
                         )
                     }
                 )
@@ -611,17 +616,28 @@ fun ProductFoundDialog(
             )
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.padding(24.dp)
             ) {
                 // Close button at top-right
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopEnd
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
                 ) {
+
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(42.dp)
+                            .align(Alignment.TopStart)
+                    )
+
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(24.dp)
+                            .align(Alignment.TopEnd)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
@@ -637,10 +653,10 @@ fun ProductFoundDialog(
                         state.product?.productName != null -> state.product.productName
                         else -> "Produk"
                     },
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Left
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -649,8 +665,8 @@ fun ProductFoundDialog(
                 Text(
                     text = state.scannedBarcode ?: "",
                     style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray
+                    textAlign = TextAlign.Left,
+                    color = Color(0xFF5D6AE9)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -659,7 +675,7 @@ fun ProductFoundDialog(
                 Text(
                     text = "Produk ditemukan, lihat komposisi dan informasi terkait nutrisi.",
                     style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Left,
                     color = Color.Gray
                 )
 
@@ -670,7 +686,7 @@ fun ProductFoundDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { /* Navigate to product details */ },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.Black
                     )
@@ -783,17 +799,28 @@ fun ProductNotFoundDialog(
             )
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.padding(24.dp)
             ) {
-                // Close button at top-right
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopEnd
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
                 ) {
+                    // Gambar dari drawable di kiri atas
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(42.dp)
+                            .align(Alignment.TopStart)
+                    )
+
+                    // Tombol Close di kanan atas
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(24.dp)
+                            .align(Alignment.TopEnd)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
@@ -806,10 +833,10 @@ fun ProductNotFoundDialog(
                 // Title
                 Text(
                     text = "Produk tidak ditemukan",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Left
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -818,7 +845,7 @@ fun ProductNotFoundDialog(
                 Text(
                     text = "Maaf, produk yang Anda pindai tidak ditemukan.",
                     style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Left,
                     color = Color.Gray
                 )
 

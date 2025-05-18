@@ -35,6 +35,8 @@ import com.proyek.foolens.ui.auth.login.LoginScreen
 import com.proyek.foolens.ui.auth.register.RegisterScreen
 import com.proyek.foolens.ui.component.BottomNavItem
 import com.proyek.foolens.ui.component.FoolensBottomNavigation
+import com.proyek.foolens.ui.history.ScanHistoryScreen
+import com.proyek.foolens.ui.history.detail.ScanDetailScreen
 import com.proyek.foolens.ui.home.HomeScreen
 import com.proyek.foolens.ui.landing.LandingScreen
 import com.proyek.foolens.ui.profile.EditProfileScreen
@@ -110,7 +112,6 @@ fun AppNavigation() {
 
 @Composable
 fun MainNavHost(navController: NavHostController) {
-    // Untuk Demo: Simpan sementara selected allergen di Navigation scope
     var selectedAllergen by remember { mutableStateOf<UserAllergen?>(null) }
 
     NavHost(
@@ -203,6 +204,10 @@ fun MainNavHost(navController: NavHostController) {
                 onProfileClick = {
                     // Navigate to profile screen
                     navController.navigate("profile")
+                },
+                onHistoryClick = {
+                    // Navigate to list history screen
+                    navController.navigate("history")
                 }
             )
         }
@@ -328,6 +333,30 @@ fun MainNavHost(navController: NavHostController) {
                 onClose = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        // Navigate to History Screen
+        composable("history") {
+            ScanHistoryScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToDetail = { scanId ->
+                    navController.navigate("history_detail/$scanId")
+                }
+            )
+        }
+
+        // Navigate to History Scan Detail
+        composable(
+            route = "history_detail/{scanId}",
+            arguments = listOf(navArgument("scanId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val scanId = backStackEntry.arguments?.getString("scanId") ?: ""
+            ScanDetailScreen(
+                scanId = scanId,
+                onBack = { navController.popBackStack() }
             )
         }
     }

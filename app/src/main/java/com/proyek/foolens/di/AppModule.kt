@@ -7,15 +7,18 @@ import com.proyek.foolens.data.repository.AllergenRepositoryImpl
 import com.proyek.foolens.data.repository.AuthRepositoryImpl
 import com.proyek.foolens.data.repository.ProductRepositoryImpl
 import com.proyek.foolens.data.repository.ProfileRepositoryImpl
+import com.proyek.foolens.data.repository.ScanHistoryRepositoryImpl
 import com.proyek.foolens.data.repository.UserAllergenRepositoryImpl
 import com.proyek.foolens.domain.repository.AllergenRepository
 import com.proyek.foolens.domain.repository.AuthRepository
 import com.proyek.foolens.domain.repository.ProductRepository
 import com.proyek.foolens.domain.repository.ProfileRepository
+import com.proyek.foolens.domain.repository.ScanHistoryRepository
 import com.proyek.foolens.domain.repository.UserAllergenRepository
 import com.proyek.foolens.domain.usecases.AllergenUseCase
 import com.proyek.foolens.domain.usecases.AuthUseCase
 import com.proyek.foolens.domain.usecases.ProfileUseCase
+import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
 import com.proyek.foolens.domain.usecases.UserAllergenUseCase
 import com.proyek.foolens.util.TokenManager
 import dagger.Binds
@@ -61,6 +64,12 @@ abstract class AppModule {
 
     @Binds
     @Singleton
+    abstract fun bindScanHistoryRepository(
+        scanHistoryRepositoryImpl: ScanHistoryRepositoryImpl
+    ): ScanHistoryRepository
+
+    @Binds
+    @Singleton
     abstract fun bindAppInitializer(
         defaultAppInitializer: DefaultAppInitializer
     ): AppInitializer
@@ -98,6 +107,14 @@ abstract class AppModule {
             profileRepository: ProfileRepository
         ): ProfileUseCase {
             return ProfileUseCase(profileRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideScanHistoryUseCase(
+            scanHistoryRepository: ScanHistoryRepository,
+        ): ScanHistoryUseCase {
+            return ScanHistoryUseCase(scanHistoryRepository)
         }
     }
 }

@@ -3,23 +3,28 @@ package com.proyek.foolens.ui.home
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,8 +54,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.proyek.foolens.R
@@ -67,15 +75,12 @@ import java.time.LocalDate
 fun HomeScreen(
     onLogout: () -> Unit,
     onProfileClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current  // Add this line to get context
-
-    // Create image loader
-    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
 
     // Track if logout dialog is showing
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -130,7 +135,6 @@ fun HomeScreen(
         ) {
             when {
                 state.isLoading -> {
-                    // Show loading indicator
                     Box(modifier = Modifier.fillMaxSize()) {
                         CircularProgressIndicator(
                             modifier = Modifier.align(Alignment.Center)
@@ -138,17 +142,17 @@ fun HomeScreen(
                     }
                 }
                 state.user != null -> {
-                    // Show user data
                     HomeContent(
                         state = state,
                         formattedDate = formattedDate,
+                        totalScans = 0,
                         onRefresh = { viewModel.loadUserData() },
                         onLogout = { showLogoutDialog = true },
-                        onProfileClick = onProfileClick
+                        onProfileClick = onProfileClick,
+                        onHistoryClick = onHistoryClick,
                     )
                 }
                 else -> {
-                    // Show error or empty state
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -214,14 +218,15 @@ fun HomeScreen(
 fun HomeContent(
     state: HomeState,
     formattedDate: String,
+    totalScans: Int?,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onHistoryClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
-
 
     Column(
         modifier = Modifier
@@ -243,23 +248,15 @@ fun HomeContent(
                 color = Color.Gray
             )
 
-//            Row {
-//                IconButton(onClick = onRefresh) {
-//                    Icon(
-//                        imageVector = Icons.Default.Refresh,
-//                        contentDescription = "Refresh",
-//                        tint = Color.Gray
-//                    )
-//                }
-//
-//                IconButton(onClick = onLogout) {
-//                    Icon(
-//                        imageVector = Icons.Default.ExitToApp,
-//                        contentDescription = "Logout",
-//                        tint = Color.Gray
-//                    )
-//                }
-//            }
+            Row {
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color.Gray
+                    )
+                }
+            }
         }
 
         // Row for greeting and profile image
@@ -296,7 +293,6 @@ fun HomeContent(
                 modifier = Modifier
                     .clickable(onClick = onProfileClick)
             ) {
-                // Replace the static Image with AsyncImage
                 if (state.user?.profilePicture != null && state.user.profilePicture.isNotEmpty()) {
                     AsyncImage(
                         model = ImageUtils.createProfileImageRequest(
@@ -312,7 +308,6 @@ fun HomeContent(
                         imageLoader = imageLoader
                     )
                 } else {
-                    // Fallback to default image if no profile picture is available
                     Image(
                         painter = painterResource(id = R.drawable.profile_image),
                         contentDescription = "Profile Image",
@@ -327,58 +322,278 @@ fun HomeContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // User information card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF5F5F5)
-            )
-        ) {
-            Column(
+        // Total Scanned Product Card
+        TotalScannedProductCard(
+            totalScanned = totalScans ?: 0,
+            safeCount = 0,
+            unsafeCount = 0,
+            newScanned = 0
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column{
+            Row (
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "Account Information",
+                    text = "Recently Scanned",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "See All",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Blue,
+                    modifier = Modifier
+                        .clickable(onClick = onHistoryClick)
+                )
+            }
 
-                InfoRow(label = "Name", value = state.user?.name ?: "-")
-                InfoRow(label = "Email", value = state.user?.email ?: "-")
-                InfoRow(label = "Phone", value = state.user?.phone ?: "-")
-                InfoRow(label = "User ID", value = state.user?.id.toString() ?: "-")
+            Spacer(Modifier.height(16.dp))
+
+            HistoryScan(name = "Oreo", allergens = "Milk", onClick = { println("Click") })
+            HistoryScan(name = "Indomie", allergens = "Gluten, Soy", onClick = { println("Click") })
+            HistoryScan(name = "SilverQueen", allergens = "Milk, Almond", onClick = { println("Click") })
+        }
+    }
+}
+
+@Composable
+fun TotalScannedProductCard(
+    totalScanned: Int,
+    safeCount: Int,
+    unsafeCount: Int,
+    newScanned: Int
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF5F5F5)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Header: Total Scanned Product
+            Text(
+                text = "Total Scanned Product",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = Color(0xFF666666),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // Total items - static "31 items" regardless of totalScanned parameter
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = "31",
+                    style = MaterialTheme.typography.headlineLarge.copy(fontSize = 68.sp),
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.padding(horizontal = 1.dp))
+                Text(
+                    text = "items",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            // Progress Bar
+            Text(
+                text = "Let's Compare!",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                color = Color(0xFF666666),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.Start)
+                    .padding(bottom = 16.dp),
+                fontWeight = FontWeight.Bold
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .background(Color(0xFFE0E0E0), RoundedCornerShape(100.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.75f)
+                        .fillMaxHeight()
+                        .background(Color(0xFF4169E1), RoundedCornerShape(100.dp))
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Safe Column - Left aligned
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)
+                ) {
+                    Text(
+                        text = "Safe",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                        color = Color.Black,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.Start)
+                            .padding(bottom = 4.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(24.dp)
+                            .height(2.dp)
+                            .background(Color(0xFF4169E1))
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "157 product",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 16.sp, color = Color(0xFFAAAAAA)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.Start)
+                            .padding(top = 8.dp)
+                    )
+                }
+
+                // Vertical Divider
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(64.dp)
+                        .background(Color(0xFFE0E0E0))
+                )
+
+                // Unsafe Column - Left aligned within its space
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)
+                ) {
+                    Text(
+                        text = "Unsafe",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.Start)
+                            .padding(bottom = 4.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(24.dp)
+                            .height(1.dp)
+                            .background(Color(0xFFE0E0E0))
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "43 product",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 16.sp, color = Color(0xFFAAAAAA)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.Start)
+                            .padding(top = 8.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(Color(0xFFCEEB44), RoundedCornerShape(6.dp)), // Changed to match the light green in the image
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "+3 product scanned",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    color = Color.Black,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
 }
 
 @Composable
-fun InfoRow(label: String, value: String) {
-    Row(
+fun HistoryScan(name: String, allergens: String, onClick: () -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFFFFF)
+        )
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
 
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black
-        )
+                Text(
+                    text = "Risky Ingredients",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Black
+                )
+
+                Text(
+                    text = allergens,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = FontStyle.Italic,
+                    color = Color.Blue
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowRight,
+                contentDescription = "Next",
+                tint = Color.Black
+            )
+        }
     }
 }

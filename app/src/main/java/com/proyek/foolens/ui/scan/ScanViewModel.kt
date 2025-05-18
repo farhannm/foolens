@@ -397,14 +397,32 @@ class ScanViewModel @Inject constructor(
      * Dismiss product found dialog and resume scanning
      */
     fun dismissProductFoundDialog() {
-        _state.update { it.copy(showProductFoundDialog = false, temporaryPauseScan = false) }
+        _state.update {
+            it.copy(
+                showProductFoundDialog = false,
+                temporaryPauseScan = false
+            )
+        }
+        // Reset barcode processing variables
+        lastProcessedBarcode = ""
+        lastBarcodeApiRequestTime = 0L
+        isProcessingRequest.set(false)
     }
 
     /**
      * Dismiss product not found dialog and resume scanning
      */
     fun dismissProductNotFoundDialog() {
-        _state.update { it.copy(showProductNotFoundDialog = false, temporaryPauseScan = false) }
+        _state.update {
+            it.copy(
+                showProductNotFoundDialog = false,
+                temporaryPauseScan = false
+            )
+        }
+        // Reset barcode processing variables
+        lastProcessedBarcode = ""
+        lastBarcodeApiRequestTime = 0L
+        isProcessingRequest.set(false)
     }
 
     /**
@@ -428,8 +446,21 @@ class ScanViewModel @Inject constructor(
         _state.update {
             ScanState(
                 isScanning = it.isScanning,
-                temporaryPauseScan = false
+                temporaryPauseScan = false,
+                currentScanMode = it.currentScanMode
             )
+        }
+
+        // Reset processing flags and cache
+        isProcessingRequest.set(false)
+
+        // Reset mode-specific variables
+        if (_state.value.currentScanMode == ScanMode.ALLERGEN) {
+            lastProcessedText = ""
+            lastApiRequestTime = 0L
+        } else {
+            lastProcessedBarcode = ""
+            lastBarcodeApiRequestTime = 0L
         }
     }
 

@@ -5,17 +5,24 @@ import com.proyek.foolens.data.remote.dto.AllergenCategoryDto
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenDto
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
+import com.proyek.foolens.data.remote.dto.ScanHistoryDto
 import com.proyek.foolens.data.remote.dto.UserAllergenDto
 import com.proyek.foolens.data.remote.dto.UserDto
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.AllergenDetectionResult
 import com.proyek.foolens.domain.model.ProductScanResult
+import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.model.User
 import com.proyek.foolens.domain.model.UserAllergen
+import java.text.SimpleDateFormat
+import java.util.*
 
 object DataMapper {
     private const val TAG = "DataMapper"
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
 
     /**
      * Mengkonversi UserDto (dari API) ke User domain model
@@ -184,5 +191,29 @@ object DataMapper {
             detectedAllergens = detectedAllergens,
             hasAllergens = response.hasAllergens ?: (detectedAllergens.isNotEmpty())
         )
+    }
+
+    /**
+     * Mengkonversi ScanHistoryDto ke ScanHistory domain model
+     *
+     * @param dto ScanHistoryDto dari API
+     * @return ScanHistory domain model
+     */
+    fun mapScanHistoryDtoToDomain(dto: ScanHistoryDto): ScanHistory {
+        Log.d(TAG, "Mapping ScanHistoryDto: id=${dto.id}, barcode=${dto.productId}")
+        try {
+            return ScanHistory(
+                id = dto.id,
+                userId = dto.userId,
+                productId = dto.productId,
+                isSafe = dto.isSafe,
+                unsafeAllergens = dto.unsafeAllergens,
+                product = dto.product?.toProduct(),
+                createdAt = dateFormat.parse(dto.createdAt) ?: Date()
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error mapping ScanHistoryDto: ${e.message}", e)
+            throw IllegalStateException("Gagal memetakan ScanHistoryDto: ${e.message}")
+        }
     }
 }
