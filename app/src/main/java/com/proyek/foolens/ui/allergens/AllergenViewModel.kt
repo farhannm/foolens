@@ -185,7 +185,4 @@ class AllergensViewModel @Inject constructor(
         }
     }
 
-    fun setSelectedTab(tab: AllergensState.Tab) {
-        _state.update { it.copy(selectedTab = tab) }
-    }
 }

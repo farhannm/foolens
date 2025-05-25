@@ -160,10 +160,10 @@ fun ProfileScreen(
                 },
                 actions = {
                     IconButton(onClick = onEditProfile) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_edit),
                             contentDescription = "Edit Profile",
-                            tint = Color.Black
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -265,7 +265,7 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 16.dp, start = 10.dp),
+                            .padding(bottom = 16.dp),
                         contentAlignment = Alignment.BottomStart
                     ) {
                         Box(
@@ -279,8 +279,8 @@ fun ProfileScreen(
                         ) {
                             Text(
                                 text = "Logout",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center,
                                 color = Color.Red,
                                 modifier = Modifier

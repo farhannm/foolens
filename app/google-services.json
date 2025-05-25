@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "677637713666",
+    "project_id": "foolens-9ca71",
+    "storage_bucket": "foolens-9ca71.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:677637713666:android:3064ac41cdf2c951dcdc1b",
+        "android_client_info": {
+          "package_name": "com.proyek.foolens"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBq18nkIM_3YuRz7MUJCagiX6xij_9bzg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

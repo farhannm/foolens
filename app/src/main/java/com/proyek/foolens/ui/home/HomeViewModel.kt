@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.usecases.AuthUseCase
+import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
 import com.proyek.foolens.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authUseCase: AuthUseCase,
-    private val tokenManager: TokenManager  // Inject TokenManager
+    private val scanHistoryUseCase: ScanHistoryUseCase,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -24,6 +26,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadUserData()
+        loadScanCountData()
     }
 
     /**
@@ -36,9 +39,49 @@ class HomeViewModel @Inject constructor(
             authUseCase.getCurrentUser().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
+                        val user = result.data
+
                         _state.update {
                             it.copy(
-                                user = result.data,
+                                user = user,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+
+                        loadProductSafetyStats(user.id.toString())
+                    }
+                    is NetworkResult.Error -> {
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.errorMessage
+                            )
+                        }
+                    }
+                    is NetworkResult.Loading -> {
+                        _state.update {
+                            it.copy(isLoading = true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Memuat data statistik pemindaian dari API
+     */
+    fun loadScanCountData() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
+            scanHistoryUseCase.getScanCount().collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        _state.update {
+                            it.copy(
+                                scanCount = result.data,
                                 isLoading = false,
                                 errorMessage = null
                             )
@@ -60,6 +103,44 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun loadProductSafetyStats(userId: String) {
+        viewModelScope.launch {
+            scanHistoryUseCase.getProductSafetyStats(userId).collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        _state.update {
+                            it.copy(
+                                productSafetyStats = result.data,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is NetworkResult.Error -> {
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.errorMessage
+                            )
+                        }
+                    }
+                    is NetworkResult.Loading -> {
+                        _state.update { it.copy(isLoading = true) }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Refresh both user and scan count data
+     */
+    fun refreshData() {
+        loadUserData()
+        loadScanCountData()
     }
 
     /**

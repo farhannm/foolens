@@ -4,14 +4,18 @@ import android.util.Log
 import com.proyek.foolens.data.remote.dto.AllergenCategoryDto
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenDto
+import com.proyek.foolens.data.remote.dto.ProductSafetyStatsDto
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
+import com.proyek.foolens.data.remote.dto.ScanCountDto
 import com.proyek.foolens.data.remote.dto.ScanHistoryDto
 import com.proyek.foolens.data.remote.dto.UserAllergenDto
 import com.proyek.foolens.data.remote.dto.UserDto
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.AllergenDetectionResult
+import com.proyek.foolens.domain.model.ProductSafetyStats
 import com.proyek.foolens.domain.model.ProductScanResult
+import com.proyek.foolens.domain.model.ScanCount
 import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.model.User
 import com.proyek.foolens.domain.model.UserAllergen
@@ -216,4 +220,33 @@ object DataMapper {
             throw IllegalStateException("Gagal memetakan ScanHistoryDto: ${e.message}")
         }
     }
+
+    /**
+     * Mengkonversi ScanCountDto ke ScanCount domain model
+     *
+     */
+    fun mapScanCountDtoToDomain(scanCountDto: ScanCountDto): ScanCount {
+        return ScanCount(
+            totalCount = scanCountDto.totalCount,
+            safeCount = scanCountDto.safeCount,
+            unsafeCount = scanCountDto.unsafeCount,
+            todayCount = scanCountDto.todayCount
+        )
+    }
+
+    /**
+     * Mengkonversi ProductSafetyStatsDto ke ProductSafetyStats domain model
+     *
+     */
+    fun mapProductSafetyStatsDtoToDomain(dto: ProductSafetyStatsDto): ProductSafetyStats {
+        return ProductSafetyStats(
+            totalCount = dto.totalCount,
+            safeCount = dto.safeCount,
+            unsafeCount = dto.unsafeCount,
+            safePercentage = dto.safePercentage,
+            unsafePercentage = dto.unsafePercentage,
+            categoryBreakdown = dto.categoryBreakdown
+        )
+    }
+
 }

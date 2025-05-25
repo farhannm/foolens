@@ -2,8 +2,11 @@ package com.proyek.foolens.data.remote.api
 
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenResponse
+import com.proyek.foolens.data.remote.dto.ChangePasswordResponse
+import com.proyek.foolens.data.remote.dto.ProductSafetyStatsResponse
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.ProfileResponse
+import com.proyek.foolens.data.remote.dto.ScanCountResponse
 import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenResponse
@@ -51,6 +54,12 @@ interface ApiService {
         @Part profilePicture: MultipartBody.Part?,
         @PartMap params: Map<String, @JvmSuppressWildcards RequestBody>
     ): Response<ProfileResponse>
+
+    @POST(Constants.ENDPOINT_CHANGE_PASSWORD)
+    suspend fun changePassword(
+        @Path("user_id") userId: String,
+        @Body passwordRequest: Map<String, String>
+    ): Response<ChangePasswordResponse>
 
     // Allergen endpoints
     @POST(Constants.ENDPOINT_DETECT_ALLERGENS)
@@ -101,7 +110,7 @@ interface ApiService {
     suspend fun getProductSafetyStats(
         @Path("user_id") userId: String,
         @Query("include_categories") includeCategories: Boolean = false
-    ): Response<Map<String, Any>>
+    ): Response<ProductSafetyStatsResponse>
 
     // Scan history endpoints
     @POST(Constants.ENDPOINT_SAVE_SCAN)
@@ -122,5 +131,5 @@ interface ApiService {
     ): Response<Map<String, Any>>
 
     @GET(Constants.ENDPOINT_GET_SCAN_COUNT)
-    suspend fun getTodayScanCount(): Response<Map<String, Any>>
+    suspend fun getTodayScanCount(): Response<ScanCountResponse>
 }

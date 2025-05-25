@@ -1,6 +1,8 @@
 package com.proyek.foolens.domain.usecases
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.ProductSafetyStats
+import com.proyek.foolens.domain.model.ScanCount
 import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.repository.ScanHistoryRepository
 import com.proyek.foolens.util.Constants
@@ -25,4 +27,13 @@ class ScanHistoryUseCase @Inject constructor(
     ): Flow<NetworkResult<List<ScanHistory>>> {
         return scanHistoryRepository.getScanHistory(limit, page, safetyFilter)
     }
+
+    suspend fun getScanCount(): Flow<NetworkResult<ScanCount>> {
+        return scanHistoryRepository.getScanCount()
+    }
+
+    suspend fun getProductSafetyStats(userId: String): Flow<NetworkResult<ProductSafetyStats>> {
+        return scanHistoryRepository.getProductSafetyStats(userId)
+    }
+
 }

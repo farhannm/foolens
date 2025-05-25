@@ -3,6 +3,7 @@ package com.proyek.foolens.data.repository
 import android.util.Log
 import com.proyek.foolens.data.preferences.PreferencesManager
 import com.proyek.foolens.data.remote.api.ApiService
+import com.proyek.foolens.data.remote.dto.ChangePasswordResponse
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.model.Profile
 import com.proyek.foolens.domain.repository.ProfileRepository
@@ -132,6 +133,52 @@ class ProfileRepositoryImpl @Inject constructor(
                 }
             } else {
                 val errorMessage = response.errorBody()?.string() ?: "Gagal memperbarui data profil"
+                Log.e(TAG, "Error: ${response.code()}, $errorMessage")
+                emit(NetworkResult.Error(errorMessage))
+            }
+        } catch (e: HttpException) {
+            Log.e(TAG, "HTTP Exception: ${e.message()}, ${e.code()}", e)
+            emit(NetworkResult.Error("Error jaringan: ${e.message()}"))
+        } catch (e: IOException) {
+            Log.e(TAG, "IO Exception: ${e.message}", e)
+            emit(NetworkResult.Error("Tidak dapat terhubung ke server. Periksa koneksi internet Anda."))
+        } catch (e: Exception) {
+            Log.e(TAG, "General exception: ${e.message}", e)
+            emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
+        }
+    }
+
+    override suspend fun changePassword(
+        userId: String,
+        currentPassword: String,
+        newPassword: String
+    ): Flow<NetworkResult<ChangePasswordResponse>> = flow {
+        emit(NetworkResult.Loading)
+
+        try {
+            Log.d(TAG, "Changing password for user: $userId")
+
+            val response = apiService.changePassword(
+                userId = userId,
+                passwordRequest = mapOf(
+                    "current_password" to currentPassword,
+                    "password" to newPassword,
+                    "password_confirmation" to newPassword
+                )
+            )
+
+            if (response.isSuccessful) {
+                val changePasswordResponse = response.body()
+
+                if (changePasswordResponse != null && changePasswordResponse.status == "success") {
+                    Log.d(TAG, "Password changed successfully")
+                    emit(NetworkResult.Success(changePasswordResponse))
+                } else {
+                    Log.e(TAG, "Failed to change password: ${changePasswordResponse?.status}")
+                    emit(NetworkResult.Error(changePasswordResponse?.message ?: "Gagal mengganti kata sandi"))
+                }
+            } else {
+                val errorMessage = response.errorBody()?.string() ?: "Gagal mengganti kata sandi"
                 Log.e(TAG, "Error: ${response.code()}, $errorMessage")
                 emit(NetworkResult.Error(errorMessage))
             }

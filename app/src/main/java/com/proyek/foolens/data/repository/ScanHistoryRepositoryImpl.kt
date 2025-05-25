@@ -6,6 +6,8 @@ import com.proyek.foolens.data.remote.api.ApiService
 import com.proyek.foolens.data.remote.dto.*
 import com.proyek.foolens.data.util.DataMapper
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.ProductSafetyStats
+import com.proyek.foolens.domain.model.ScanCount
 import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.repository.ScanHistoryRepository
 import com.proyek.foolens.util.Constants
@@ -175,4 +177,72 @@ class ScanHistoryRepositoryImpl @Inject constructor(
             emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
         }
     }
+
+    override suspend fun getScanCount(): Flow<NetworkResult<ScanCount>> = flow {
+        emit(NetworkResult.Loading)
+        try {
+            Log.d(TAG, "Fetching scan count statistics")
+            val response = apiService.getTodayScanCount() // return Response<ScanCountResponse>
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null && body.status == "success") {
+                    val dto = ScanCountDto(
+                        totalCount = body.data.totalCount,
+                        todayCount = body.data.todayCount,
+                        safeCount = 0, // fallback default
+                        unsafeCount = 0
+                    )
+                    val domain = DataMapper.mapScanCountDtoToDomain(dto)
+                    emit(NetworkResult.Success(domain))
+                } else {
+                    emit(NetworkResult.Error("Response status bukan success"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorResponse = errorBody?.let { gson.fromJson(it, ErrorResponse::class.java) }
+                val errorMessage = errorResponse?.message
+                    ?: errorResponse?.errorDetails
+                    ?: errorBody
+                    ?: "Gagal mengambil data statistik pemindaian"
+                emit(NetworkResult.Error(errorMessage))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
+        }
+    }
+
+    override suspend fun getProductSafetyStats(userId: String): Flow<NetworkResult<ProductSafetyStats>> = flow {
+        emit(NetworkResult.Loading)
+
+        try {
+            val response = apiService.getProductSafetyStats(userId)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null && body.status == "success") {
+                    val domain = DataMapper.mapProductSafetyStatsDtoToDomain(body.data)
+                    emit(NetworkResult.Success(domain))
+                } else {
+                    emit(NetworkResult.Error("Status bukan success atau body null"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorResponse = errorBody?.let { gson.fromJson(it, ErrorResponse::class.java) }
+                val errorMessage = errorResponse?.message
+                    ?: errorResponse?.errorDetails
+                    ?: errorBody
+                    ?: "Gagal mengambil statistik keamanan produk"
+                emit(NetworkResult.Error(errorMessage))
+            }
+        } catch (e: HttpException) {
+            emit(NetworkResult.Error("HTTP error: ${e.message()}"))
+        } catch (e: IOException) {
+            emit(NetworkResult.Error("Tidak dapat terhubung ke server"))
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
+        }
+    }
+
+
 }

@@ -170,58 +170,58 @@ fun AllergenDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Severity field styled like AddAllergenScreen
-                Text(
-                    text = "Tingkat Keparahan (1-5)",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.LightGray.copy(alpha = 0.1f))
-                        .clickable { showSeverityDialog = true }
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = state.severityLevel.toString(),
-                            color = Color.Black,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        // Severity indicator dots
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            for (i in 1..5) {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(end = 4.dp)
-                                        .size(12.dp)
-                                        .background(
-                                            color = if (i <= state.severityLevel) {
-                                                when (state.severityLevel) {
-                                                    1 -> Color(0xFF9DE24F) // Green
-                                                    2 -> Color(0xFFCEF33F) // Light Green
-                                                    3 -> Color(0xFFF3E03F) // Yellow
-                                                    4 -> Color(0xFFF3943F) // Orange
-                                                    else -> Color(0xFFF33F3F) // Red
-                                                }
-                                            } else {
-                                                Color.LightGray
-                                            },
-                                            shape = CircleShape
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
+//                Text(
+//                    text = "Tingkat Keparahan (1-5)",
+//                    fontSize = 12.sp,
+//                    color = Color.Gray,
+//                    modifier = Modifier.padding(bottom = 8.dp)
+//                )
+//
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .clip(RoundedCornerShape(8.dp))
+//                        .background(Color.LightGray.copy(alpha = 0.1f))
+//                        .clickable { showSeverityDialog = true }
+//                        .padding(16.dp)
+//                ) {
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Text(
+//                            text = state.severityLevel.toString(),
+//                            color = Color.Black,
+//                            fontWeight = FontWeight.SemiBold
+//                        )
+//                        Spacer(modifier = Modifier.width(8.dp))
+//                        // Severity indicator dots
+//                        Row(verticalAlignment = Alignment.CenterVertically) {
+//                            for (i in 1..5) {
+//                                Box(
+//                                    modifier = Modifier
+//                                        .padding(end = 4.dp)
+//                                        .size(12.dp)
+//                                        .background(
+//                                            color = if (i <= state.severityLevel) {
+//                                                when (state.severityLevel) {
+//                                                    1 -> Color(0xFF9DE24F) // Green
+//                                                    2 -> Color(0xFFCEF33F) // Light Green
+//                                                    3 -> Color(0xFFF3E03F) // Yellow
+//                                                    4 -> Color(0xFFF3943F) // Orange
+//                                                    else -> Color(0xFFF33F3F) // Red
+//                                                }
+//                                            } else {
+//                                                Color.LightGray
+//                                            },
+//                                            shape = CircleShape
+//                                        )
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                Spacer(modifier = Modifier.height(16.dp))
 
                 // Notes field styled like AddAllergenScreen
                 Text(

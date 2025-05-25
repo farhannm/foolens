@@ -35,6 +35,7 @@ fun LoginScreen(
     onRegisterClick: () -> Unit,
     onLoginSuccess: () -> Unit,
     onClose: () -> Unit,
+    onForgotPasswordClick: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -254,6 +255,18 @@ fun LoginScreen(
                         color = OnBackground,
                         modifier = Modifier.clickable { onRegisterClick() }
                     )
+                    Text(
+                        text = "Lupa password?",
+                        color = Color.Gray,
+                        modifier = Modifier
+                            .clickable {
+                                onForgotPasswordClick()
+                            },
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

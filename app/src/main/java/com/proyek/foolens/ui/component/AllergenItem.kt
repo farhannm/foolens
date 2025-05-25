@@ -142,7 +142,7 @@ fun AllergenItemExpandable(
                 Text(
                     text = allergen.name,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.weight(1f)
                 )
@@ -175,8 +175,8 @@ fun AllergenItemExpandable(
                     allergen.description?.let { description ->
                         Text(
                             text = description,
-                            fontSize = 14.sp,
-                            color = Color.DarkGray
+                            fontSize = 13.sp,
+                            color = Color(0xFFA6A6A6)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -207,7 +207,7 @@ fun AllergenItemExpandable(
                         Text(
                             text = allergen.alternativeNames ?: "Tidak ada nama alternatif",
                             fontSize = 14.sp,
-                            color = Color.Blue,
+                            color = Color(0xFFFF9F00),
                             fontWeight = FontWeight.Normal,
                             fontStyle = FontStyle.Italic
                         )

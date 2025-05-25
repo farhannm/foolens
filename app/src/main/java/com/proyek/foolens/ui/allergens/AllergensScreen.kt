@@ -2,6 +2,7 @@ package com.proyek.foolens.ui.allergens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,28 +57,20 @@ import com.proyek.foolens.ui.theme.Typography
 fun AllergensScreen(
     viewModel: AllergensViewModel = hiltViewModel(),
     onNavigateToAddAllergen: () -> Unit = {},
-    onNavigateToAllergenDetail: (UserAllergen) -> Unit = {}
+    onNavigateToAllergenDetail: (UserAllergen) -> Unit = {},
+    onNavigateToGuide: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val myBlack = Color(0xFF062207)
 
-    // Load common allergens when the tab is selected
-    LaunchedEffect(state.selectedTab) {
-        if (state.selectedTab == AllergensState.Tab.COMMON && state.commonAllergens.isEmpty()) {
-            viewModel.loadCommonAllergens()
-        }
-    }
-
     Scaffold(
         floatingActionButton = {
-            if (state.selectedTab == AllergensState.Tab.PERSONAL) {
-                FloatingActionButton(
-                    onClick = onNavigateToAddAllergen,
-                    containerColor = myBlack,
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Filled.Add, "Add Allergen")
-                }
+            FloatingActionButton(
+                onClick = onNavigateToAddAllergen,
+                containerColor = myBlack,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Filled.Add, "Add Allergen")
             }
         }
     ) { padding ->
@@ -87,101 +80,47 @@ fun AllergensScreen(
                 .padding(padding)
                 .background(Color.White)
         ) {
-            // Screen header
-            Text(
-                text = "Allergens",
-                style = Typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 24.dp)
-            )
-
-            // Custom tab implementation
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Personal Tab
+                Text(
+                    text = "Personal\nAllergens",
+                    style = Typography.headlineMedium,
+                    fontWeight = FontWeight.Medium
+                )
+
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(36.dp))
-                        .background(
-                            if (state.selectedTab == AllergensState.Tab.PERSONAL)
-                                myBlack
-                            else
-                                Color.Transparent
-                        )
-                        .clickable { viewModel.setSelectedTab(AllergensState.Tab.PERSONAL) }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF062207))
+                        .clickable { onNavigateToGuide() }
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Personal",
-                        style = Typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = if (state.selectedTab == AllergensState.Tab.PERSONAL)
-                            Color.White
-                        else
-                            Color(0xFFA3A4A3),
-                        fontSize = 16.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Common Tab
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(36.dp))
-                        .background(
-                            if (state.selectedTab == AllergensState.Tab.COMMON)
-                                myBlack
-                            else
-                                Color.Transparent
-                        )
-                        .clickable { viewModel.setSelectedTab(AllergensState.Tab.COMMON) }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Common",
-                        style = Typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = if (state.selectedTab == AllergensState.Tab.COMMON)
-                            Color.White
-                        else
-                            Color(0xFFA3A4A3),
-                        fontSize = 16.sp
+                        text = "Help ?",
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
 
-            // Content based on selected tab
-            when (state.selectedTab) {
-                AllergensState.Tab.PERSONAL -> {
-                    PersonalAllergensContent(
-                        isLoading = state.isLoading,
-                        isRefreshing = state.isRefreshing,
-                        allergens = state.userAllergens,
-                        errorMessage = state.errorMessage,
-                        onRefresh = { viewModel.refreshAllergens() },
-                        onAllergenClick = onNavigateToAllergenDetail
-                    )
-                }
-                AllergensState.Tab.COMMON -> {
-                    CommonAllergensContent(
-                        allergens = state.commonAllergens,
-                        isLoading = state.isLoadingCommon,
-                        errorMessage = state.commonErrorMessage,
-                        onSearch = { viewModel.searchCommonAllergens(it) }
-                    )
-                }
-            }
+            PersonalAllergensContent(
+                isLoading = state.isLoading,
+                isRefreshing = state.isRefreshing,
+                allergens = state.userAllergens,
+                errorMessage = state.errorMessage,
+                onRefresh = { viewModel.refreshAllergens() },
+                onAllergenClick = onNavigateToAllergenDetail
+            )
         }
     }
 }
+
 
 @Composable
 fun PersonalAllergensContent(
@@ -236,141 +175,4 @@ fun PersonalAllergensContent(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CommonAllergensContent(
-    allergens: List<Allergen>,
-    isLoading: Boolean,
-    errorMessage: String?,
-    onSearch: (String) -> Unit
-) {
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Remember expanded state for each allergen
-    val expandedItems = remember { mutableStateOf(setOf<Int>()) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
-        // Search bar
-        TextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                onSearch(it)
-            },
-            placeholder = { Text("Search...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color.Gray
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp)),
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFEDEDED),
-                focusedContainerColor = Color(0xFFEDEDED),
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = Color.Black
-            ),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Content
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color(0xFF2B6247))
-            }
-        } else if (errorMessage != null && allergens.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = errorMessage,
-                    color = Color.Red,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else if (allergens.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No allergens found",
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            // Allergens list with expandable items
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(allergens) { allergen ->
-                    val isExpanded = expandedItems.value.contains(allergen.id)
-
-                    CommonAllergenItem(
-                        allergen = allergen,
-                        isExpanded = isExpanded,
-                        onToggleExpand = {
-                            expandedItems.value = if (isExpanded) {
-                                expandedItems.value - allergen.id
-                            } else {
-                                expandedItems.value + allergen.id
-                            }
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // Add extra space at the bottom
-                item { Spacer(modifier = Modifier.height(20.dp)) }
-            }
-        }
-    }
-}
-
-@Composable
-fun CommonAllergenItem(
-    allergen: Allergen,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit
-) {
-    val allergenForDisplay = UserAllergen(
-        id = allergen.id,
-        name = allergen.name,
-        description = allergen.description,
-        alternativeNames = allergen.alternativeNames,
-        category = com.proyek.foolens.domain.model.AllergenCategory(
-            id = 0,
-            name = "",
-            icon = null
-        ),
-        severityLevel = 0,
-        notes = null,
-        createdAt = "",
-        updatedAt = ""
-    )
-
-    // Use the existing AllergenItemExpandable component
-    AllergenItemExpandable(
-        allergen = allergenForDisplay,
-        isExpanded = isExpanded,
-        onClick = onToggleExpand
-    )
 }

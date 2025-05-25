@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -56,7 +55,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -145,7 +143,6 @@ fun HomeScreen(
                     HomeContent(
                         state = state,
                         formattedDate = formattedDate,
-                        totalScans = 0,
                         onRefresh = { viewModel.loadUserData() },
                         onLogout = { showLogoutDialog = true },
                         onProfileClick = onProfileClick,
@@ -218,7 +215,6 @@ fun HomeScreen(
 fun HomeContent(
     state: HomeState,
     formattedDate: String,
-    totalScans: Int?,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
     onProfileClick: () -> Unit,
@@ -322,12 +318,12 @@ fun HomeContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Total Scanned Product Card
         TotalScannedProductCard(
-            totalScanned = totalScans ?: 0,
-            safeCount = 0,
-            unsafeCount = 0,
-            newScanned = 0
+            totalScanned = state.scanCount?.totalCount ?: 0,
+            safeCount = state.productSafetyStats?.safeCount ?: 0,
+            unsafeCount = state.productSafetyStats?.unsafeCount ?: 0,
+            safePercentage = state.productSafetyStats?.safePercentage ?: 0.0,
+            newScanned = state.scanCount?.todayCount ?: 0
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -370,8 +366,12 @@ fun TotalScannedProductCard(
     totalScanned: Int,
     safeCount: Int,
     unsafeCount: Int,
+    safePercentage: Double,
     newScanned: Int
 ) {
+    // Gunakan safePercentage dari response (0.0–100.0), konversi ke 0.0–1.0
+    val progress = if (safePercentage > 0) (safePercentage / 100).toFloat() else 0f
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -387,7 +387,6 @@ fun TotalScannedProductCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header: Total Scanned Product
             Text(
                 text = "Total Scanned Product",
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -395,13 +394,12 @@ fun TotalScannedProductCard(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Total items - static "31 items" regardless of totalScanned parameter
             Row(
                 verticalAlignment = Alignment.Bottom,
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "31",
+                    text = "$totalScanned",
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 68.sp),
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black
@@ -415,18 +413,18 @@ fun TotalScannedProductCard(
                 )
             }
 
-            // Progress Bar
             Text(
-                text = "Let's Compare!",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                color = Color(0xFF666666),
+                text = "Lest Compare!",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = Color(0xFF062207),
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentWidth(Alignment.Start)
                     .padding(bottom = 16.dp),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
 
+            // Progress Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -435,7 +433,7 @@ fun TotalScannedProductCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.75f)
+                        .fillMaxWidth(progress)
                         .fillMaxHeight()
                         .background(Color(0xFF4169E1), RoundedCornerShape(100.dp))
                 )
@@ -447,7 +445,7 @@ fun TotalScannedProductCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Safe Column - Left aligned
+                // Safe Column
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -472,8 +470,11 @@ fun TotalScannedProductCard(
                             .padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "157 product",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 16.sp, color = Color(0xFFAAAAAA)),
+                        text = "$safeCount product",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 16.sp,
+                            color = Color(0xFFAAAAAA)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentWidth(Alignment.Start)
@@ -481,7 +482,7 @@ fun TotalScannedProductCard(
                     )
                 }
 
-                // Vertical Divider
+                // Divider
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -489,7 +490,7 @@ fun TotalScannedProductCard(
                         .background(Color(0xFFE0E0E0))
                 )
 
-                // Unsafe Column - Left aligned within its space
+                // Unsafe Column
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -513,9 +514,13 @@ fun TotalScannedProductCard(
                             .align(Alignment.Start)
                             .padding(bottom = 8.dp)
                     )
+                    val unsafePercentage = 100.0 - safePercentage
                     Text(
-                        text = "43 product",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 16.sp, color = Color(0xFFAAAAAA)),
+                        text = "$unsafeCount product",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 16.sp,
+                            color = Color(0xFFAAAAAA)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentWidth(Alignment.Start)
@@ -529,11 +534,11 @@ fun TotalScannedProductCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(40.dp)
-                    .background(Color(0xFFCEEB44), RoundedCornerShape(6.dp)), // Changed to match the light green in the image
+                    .background(Color(0xFFCEEB44), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "+3 product scanned",
+                    text = "+$newScanned product scanned today",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     color = Color.Black,
                     fontWeight = FontWeight.SemiBold
