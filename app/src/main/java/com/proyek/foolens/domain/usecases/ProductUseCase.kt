@@ -1,6 +1,7 @@
 package com.proyek.foolens.domain.usecases
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Product
 import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +16,7 @@ class ProductUseCase @Inject constructor(
      * @param barcode The barcode to scan
      * @return Flow<NetworkResult<ProductScanResult>> Product scan result with allergen information
      */
-    suspend fun scanProductBarcode(barcode: String): Flow<NetworkResult<ProductScanResult>> {
+    suspend fun scanProductBarcode(barcode: String, product: Product? = null): Flow<NetworkResult<ProductScanResult>> {
         // Validate input
         if (barcode.isBlank()) {
             return kotlinx.coroutines.flow.flow {
@@ -24,6 +25,6 @@ class ProductUseCase @Inject constructor(
         }
 
         // Forward to repository
-        return productRepository.scanProductBarcode(barcode)
+        return productRepository.scanProductBarcode(barcode, product)
     }
 }

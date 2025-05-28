@@ -5,42 +5,43 @@ import com.google.gson.annotations.SerializedName
 // DTO untuk permintaan save scan
 data class ScanDtoRequest(
     @SerializedName("barcode") val barcode: String,
-    @SerializedName("user_id") val userId: String? = null
+    @SerializedName("product_id") val productId: Int,
+    @SerializedName("is_safe") val isSafe: Boolean,
+    @SerializedName("user_id") val userId: Int? = null
 )
 
 // DTO untuk satu entitas scan history
 data class ScanHistoryDto(
-    @SerializedName("id") val id: String,
-    @SerializedName("user_id") val userId: String,
-    @SerializedName("product_id") val productId: String,
+    @SerializedName("id") val id: Int,
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("product_id") val productId: Int,
     @SerializedName("is_safe") val isSafe: Boolean,
     @SerializedName("unsafe_allergens") val unsafeAllergens: List<String>?,
+    @SerializedName("scan_notes") val scanNotes: String?,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("updated_at") val updateAt: String,
     @SerializedName("product") val product: ProductDto?,
-    @SerializedName("created_at") val createdAt: String
 )
 
 // DTO untuk respons save scan
 data class SaveScanResponse(
     @SerializedName("status") val status: String,
     @SerializedName("message") val message: String?,
-    @SerializedName("data") val data: SaveScanResponseData
-)
-
-data class SaveScanResponseData(
-    @SerializedName("scan_history") val scanHistory: ScanHistoryDto
+    @SerializedName("data") val data: ScanHistoryDto
 )
 
 // DTO untuk respons get scan history
 data class ScanHistoryListResponse(
     @SerializedName("status") val status: String,
-    @SerializedName("data") val data: ScanHistoryListResponseData
+    @SerializedName("data") val data: List<ScanHistoryDto>,
+    @SerializedName("pagination") val pagination: PaginationDto?
 )
 
-data class ScanHistoryListResponseData(
-    @SerializedName("scan_history") val scanHistory: List<ScanHistoryDto>,
-    @SerializedName("total") val total: Int,
-    @SerializedName("page") val page: Int,
-    @SerializedName("limit") val limit: Int
+data class PaginationDto(
+    @SerializedName("current_page") val currentPage: Int,
+    @SerializedName("total_pages") val totalPages: Int,
+    @SerializedName("total_items") val totalItems: Int,
+    @SerializedName("per_page") val perPage: Int
 )
 
 // DTO untuk respons delete scan

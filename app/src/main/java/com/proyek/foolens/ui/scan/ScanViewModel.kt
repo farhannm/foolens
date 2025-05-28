@@ -4,8 +4,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Product
+import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.usecases.AllergenUseCase
 import com.proyek.foolens.domain.usecases.ProductUseCase
+import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ScanViewModel @Inject constructor(
     private val allergenUseCase: AllergenUseCase,
-    private val productUseCase: ProductUseCase
+    private val productUseCase: ProductUseCase,
+    private val scanHistoryUseCase: ScanHistoryUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScanState())
@@ -113,42 +117,34 @@ class ScanViewModel @Inject constructor(
                     when (result) {
                         is NetworkResult.Success -> {
                             val allergenResult = result.data
-
                             // Update cache
                             recentAllergenDetections[cacheKey] = allergenResult.detectedAllergens
-
                             _state.update {
                                 it.copy(
                                     isProcessing = false,
                                     detectedAllergens = allergenResult.detectedAllergens,
                                     hasAllergens = allergenResult.hasAllergens,
                                     showAllergenAlert = allergenResult.hasAllergens,
-                                    showSafeProductAlert = !allergenResult.hasAllergens, // Tampilkan dialog aman jika tidak ada allergen
+                                    showSafeProductAlert = !allergenResult.hasAllergens,
                                     errorMessage = null,
-                                    temporaryPauseScan = true // Hentikan scanning sementara ketika dialog muncul
+                                    temporaryPauseScan = true
                                 )
                             }
                         }
                         is NetworkResult.Error -> {
                             Log.e(TAG, "Error API detection: ${result.errorMessage}, falling back to offline mode")
-
-                            // API failed, try offline detection instead
-                            isProcessingRequest.set(false) // Reset for offline detection
+                            isProcessingRequest.set(false)
                             detectAllergensOffline(ocrText)
                         }
                         is NetworkResult.Loading -> {
                             _state.update { it.copy(isProcessing = true) }
                         }
                     }
-
-                    // Clear processing flag
                     isProcessingRequest.set(false)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception in detectAllergens: ${e.message}, falling back to offline")
-
-                // Exception occurred, try offline detection
-                isProcessingRequest.set(false) // Reset for offline detection
+                isProcessingRequest.set(false)
                 detectAllergensOffline(ocrText)
             }
         }
@@ -169,19 +165,15 @@ class ScanViewModel @Inject constructor(
             return
         }
 
-        // Set processing flag and update time
         isProcessingRequest.set(true)
         lastApiRequestTime = currentTime
         lastProcessedText = ocrText
 
         viewModelScope.launch {
             _state.update { it.copy(isProcessing = true, errorMessage = null) }
-
-            // Simulasi delay untuk memastikan UI tidak terlalu cepat berubah
             delay(800)
 
             try {
-                // List alergen umum untuk deteksi offline
                 val offlineAllergens = mapOf(
                     "susu" to Triple("Susu", 3, "Milk, Dairy"),
                     "milk" to Triple("Susu", 3, "Milk, Dairy"),
@@ -207,12 +199,9 @@ class ScanViewModel @Inject constructor(
                 val detectedAllergens = mutableListOf<com.proyek.foolens.domain.model.Allergen>()
                 val lowerCaseText = ocrText.lowercase()
 
-                // Deteksi alergen
                 offlineAllergens.forEach { (keyword, allergenInfo) ->
-                    // Gunakan regex dengan word boundary untuk keakuratan
                     val regex = "\\b$keyword\\b".toRegex()
                     if (regex.containsMatchIn(lowerCaseText)) {
-                        // Tambahkan ke list deteksi jika belum ada
                         val (name, severity, alternativeNames) = allergenInfo
                         if (detectedAllergens.none { it.name == name }) {
                             detectedAllergens.add(
@@ -221,14 +210,13 @@ class ScanViewModel @Inject constructor(
                                     name = name,
                                     severityLevel = severity,
                                     description = "Terdeteksi dalam teks OCR",
-                                    alternativeNames = if(alternativeNames.isNotEmpty()) alternativeNames else null
+                                    alternativeNames = if (alternativeNames.isNotEmpty()) alternativeNames else null
                                 )
                             )
                         }
                     }
                 }
 
-                // Update cache
                 val cacheKey = generateCacheKey(ocrText)
                 recentAllergenDetections[cacheKey] = detectedAllergens
 
@@ -238,12 +226,11 @@ class ScanViewModel @Inject constructor(
                         detectedAllergens = detectedAllergens,
                         hasAllergens = detectedAllergens.isNotEmpty(),
                         showAllergenAlert = detectedAllergens.isNotEmpty(),
-                        showSafeProductAlert = detectedAllergens.isEmpty(), // Tampilkan dialog aman jika tidak ada allergen
+                        showSafeProductAlert = detectedAllergens.isEmpty(),
                         errorMessage = null,
-                        temporaryPauseScan = true // Hentikan scanning sementara ketika dialog muncul
+                        temporaryPauseScan = true
                     )
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "Error offline detection: ${e.message}")
                 _state.update {
@@ -253,8 +240,6 @@ class ScanViewModel @Inject constructor(
                     )
                 }
             }
-
-            // Clear processing flag
             isProcessingRequest.set(false)
         }
     }
@@ -263,13 +248,11 @@ class ScanViewModel @Inject constructor(
      * Scan product barcode and get product information
      */
     fun scanProductBarcode(barcode: String) {
-        // Skip if scan mode is not barcode or scanning is paused
         if (_state.value.currentScanMode != ScanMode.BARCODE || _state.value.temporaryPauseScan) {
             Log.d(TAG, "Skipping barcode scan because wrong mode or scanning is paused")
             return
         }
 
-        // Skip if already processing or barcode is the same as last processed
         val currentTime = System.currentTimeMillis()
         if (isProcessingRequest.get() ||
             (currentTime - lastBarcodeApiRequestTime < apiThrottleTime) ||
@@ -277,7 +260,6 @@ class ScanViewModel @Inject constructor(
             return
         }
 
-        // Set processing flag and update time
         isProcessingRequest.set(true)
         lastBarcodeApiRequestTime = currentTime
         lastProcessedBarcode = barcode
@@ -290,6 +272,7 @@ class ScanViewModel @Inject constructor(
                     when (result) {
                         is NetworkResult.Success -> {
                             val scanResult = result.data
+                            saveScanToHistory(barcode, scanResult)
                             _state.update {
                                 it.copy(
                                     isProcessing = false,
@@ -301,7 +284,7 @@ class ScanViewModel @Inject constructor(
                                     showProductFoundDialog = scanResult.found,
                                     showProductNotFoundDialog = !scanResult.found,
                                     errorMessage = null,
-                                    temporaryPauseScan = true // Pause scanning when dialog appears
+                                    temporaryPauseScan = true
                                 )
                             }
                         }
@@ -320,8 +303,6 @@ class ScanViewModel @Inject constructor(
                             _state.update { it.copy(isProcessing = true) }
                         }
                     }
-
-                    // Clear processing flag
                     isProcessingRequest.set(false)
                 }
             } catch (e: Exception) {
@@ -339,79 +320,89 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Generate a simple cache key for similar text detection
-     */
+    private suspend fun saveScanToHistory(barcode: String, scanResult: ProductScanResult) {
+        scanHistoryUseCase.saveScan(barcode, scanResult).collect { saveResult ->
+            when (saveResult) {
+                is NetworkResult.Success -> {
+                    val scanHistory = saveResult.data
+                    _state.update {
+                        it.copy(
+                            isProcessing = false,
+                            product = scanResult.product,
+                            scannedBarcode = scanResult.scannedBarcode,
+                            productFound = scanResult.found,
+                            detectedAllergens = scanResult.detectedAllergens ?: emptyList(),
+                            hasAllergens = scanResult.hasAllergens ?: false,
+                            showProductFoundDialog = scanResult.found,
+                            showProductNotFoundDialog = !scanResult.found,
+                            errorMessage = null,
+                            temporaryPauseScan = true,
+                            scanHistoryId = scanHistory.id
+                        )
+                    }
+                    Log.d(TAG, "Scan history saved successfully: ${scanHistory.id}")
+                }
+                is NetworkResult.Error -> {
+                    Log.e(TAG, "Error menyimpan hasil scan: ${saveResult.errorMessage}")
+                    _state.update {
+                        it.copy(
+                            isProcessing = false,
+                            errorMessage = saveResult.errorMessage,
+                            showProductNotFoundDialog = true,
+                            temporaryPauseScan = true
+                        )
+                    }
+                }
+                is NetworkResult.Loading -> {
+                    _state.update { it.copy(isProcessing = true) }
+                }
+            }
+            isProcessingRequest.set(false)
+        }
+    }
+
     private fun generateCacheKey(text: String): String {
-        // Simple implementation: lowercase and trim the text, get first 100 chars
         return text.lowercase().trim().take(100)
     }
 
-    /**
-     * Check if two text strings are very similar to avoid repeated processing
-     */
     private fun textIsTooSimilar(text1: String, text2: String): Boolean {
-        // If either is empty, they're not similar
         if (text1.isEmpty() || text2.isEmpty()) return false
-
-        // Simple check: if they share a significant substring
         val minLength = minOf(text1.length, text2.length)
-        val checkLength = minOf(minLength, 50) // Check up to 50 chars
-
+        val checkLength = minOf(minLength, 50)
         val sample1 = text1.lowercase().trim().take(checkLength)
         val sample2 = text2.lowercase().trim().take(checkLength)
-
-        // Check for at least 70% similarity
         return sample1.contains(sample2) || sample2.contains(sample1)
     }
 
-    /**
-     * Memulai sesi scan kamera
-     */
     fun startScanning() {
         _state.update { it.copy(isScanning = true, temporaryPauseScan = false) }
     }
 
-    /**
-     * Menghentikan sesi scan kamera
-     */
     fun stopScanning() {
         _state.update { it.copy(isScanning = false) }
     }
 
-    /**
-     * Menutup alert alergen dan melanjutkan scanning
-     */
     fun dismissAllergenAlert() {
         _state.update { it.copy(showAllergenAlert = false, temporaryPauseScan = false) }
     }
 
-    /**
-     * Menutup alert produk aman dan melanjutkan scanning
-     */
     fun dismissSafeProductAlert() {
         _state.update { it.copy(showSafeProductAlert = false, temporaryPauseScan = false) }
     }
 
-    /**
-     * Dismiss product found dialog and resume scanning
-     */
     fun dismissProductFoundDialog() {
         _state.update {
             it.copy(
                 showProductFoundDialog = false,
-                temporaryPauseScan = false
+                temporaryPauseScan = false,
+                scanHistoryId = null
             )
         }
-        // Reset barcode processing variables
         lastProcessedBarcode = ""
         lastBarcodeApiRequestTime = 0L
         isProcessingRequest.set(false)
     }
 
-    /**
-     * Dismiss product not found dialog and resume scanning
-     */
     fun dismissProductNotFoundDialog() {
         _state.update {
             it.copy(
@@ -419,29 +410,19 @@ class ScanViewModel @Inject constructor(
                 temporaryPauseScan = false
             )
         }
-        // Reset barcode processing variables
         lastProcessedBarcode = ""
         lastBarcodeApiRequestTime = 0L
         isProcessingRequest.set(false)
     }
 
-    /**
-     * Pause pemindaian sementara
-     */
     fun pauseScanning() {
         _state.update { it.copy(temporaryPauseScan = true) }
     }
 
-    /**
-     * Lanjutkan pemindaian setelah di-pause
-     */
     fun resumeScanning() {
         _state.update { it.copy(temporaryPauseScan = false) }
     }
 
-    /**
-     * Reset state aplikasi
-     */
     fun resetState() {
         _state.update {
             ScanState(
@@ -450,11 +431,7 @@ class ScanViewModel @Inject constructor(
                 currentScanMode = it.currentScanMode
             )
         }
-
-        // Reset processing flags and cache
         isProcessingRequest.set(false)
-
-        // Reset mode-specific variables
         if (_state.value.currentScanMode == ScanMode.ALLERGEN) {
             lastProcessedText = ""
             lastApiRequestTime = 0L
@@ -466,7 +443,6 @@ class ScanViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        // Clear any resources
         recentAllergenDetections.clear()
     }
 }

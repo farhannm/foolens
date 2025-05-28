@@ -28,5 +28,7 @@ data class ScanState(
     val showProductFoundDialog: Boolean = false,
     val showProductNotFoundDialog: Boolean = false,
 
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    val scanHistoryId: String? = null
 )

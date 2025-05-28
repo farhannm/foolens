@@ -417,6 +417,9 @@ fun MainNavHost(navController: NavHostController) {
             ScanScreen(
                 onClose = {
                     navController.popBackStack()
+                },
+                onDetailsClick = { scanId ->
+                    navController.navigate("scan_detail/$scanId")
                 }
             )
         }
@@ -428,14 +431,14 @@ fun MainNavHost(navController: NavHostController) {
                     navController.popBackStack()
                 },
                 onNavigateToDetail = { scanId ->
-                    navController.navigate("history_detail/$scanId")
+                    navController.navigate("scan_detail/$scanId")
                 }
             )
         }
 
-        // Navigate to History Scan Detail
+        // Navigate to Scan Detail
         composable(
-            route = "history_detail/{scanId}",
+            route = "scan_detail/{scanId}",
             arguments = listOf(navArgument("scanId") { type = NavType.StringType })
         ) { backStackEntry ->
             val scanId = backStackEntry.arguments?.getString("scanId") ?: ""

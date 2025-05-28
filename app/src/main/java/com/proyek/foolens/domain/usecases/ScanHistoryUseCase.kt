@@ -1,6 +1,7 @@
 package com.proyek.foolens.domain.usecases
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.ProductSafetyStats
 import com.proyek.foolens.domain.model.ScanCount
 import com.proyek.foolens.domain.model.ScanHistory
@@ -12,8 +13,8 @@ import javax.inject.Inject
 class ScanHistoryUseCase @Inject constructor(
     private val scanHistoryRepository: ScanHistoryRepository
 ) {
-    suspend fun saveScan(barcode: String): Flow<NetworkResult<ScanHistory>> {
-        return scanHistoryRepository.saveScan(barcode)
+    suspend fun saveScan(barcode: String, scanResult: ProductScanResult): Flow<NetworkResult<ScanHistory>> {
+        return scanHistoryRepository.saveScan(barcode, scanResult)
     }
 
     suspend fun deleteScan(scanId: String): Flow<NetworkResult<Unit>> {

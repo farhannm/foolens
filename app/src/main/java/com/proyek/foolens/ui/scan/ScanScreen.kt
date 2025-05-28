@@ -80,11 +80,13 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import com.proyek.foolens.R
+import com.proyek.foolens.domain.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanScreen(
     onClose: () -> Unit,
+    onDetailsClick: (String) -> Unit,
     viewModel: ScanViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -410,6 +412,7 @@ fun ScanScreen(
                 if (state.showProductFoundDialog) {
                     ProductFoundDialog(
                         state = state,
+                        onDetailsClick = onDetailsClick,
                         onDismiss = { viewModel.dismissProductFoundDialog() }
                     )
                 }
@@ -589,7 +592,8 @@ fun RealtimeCameraPreview(
 @Composable
 fun ProductFoundDialog(
     state: ScanState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDetailsClick: (String) -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -685,7 +689,11 @@ fun ProductFoundDialog(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { /* Navigate to product details */ },
+                        .clickable {
+                            state.scanHistoryId?.let { scanId ->
+                                onDetailsClick(scanId)
+                            }
+                        },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.Black
