@@ -2,12 +2,19 @@ package com.proyek.foolens.domain.model
 
 data class Product(
     val id: String,
-    val categoryId: Int,
-    val barcode: String?,
-    val productName: String,
+    val productName: String?,
     val brand: String?,
+    val barcode: String?,
     val imageUrl: String?,
     val ingredients: String?,
-    val nutritionalInfo: Map<String, Any>?,
-    val popularityScore: Double
+    val categoryId: Int,
+    val nutritionalInfo: NutritionalInfo?,
+    val popularityScore: Double?
+)
+
+data class NutritionalInfo(
+    val fat: Int?,
+    val carbs: Int?,
+    val protein: Int?,
+    val calories: Int?
 )

@@ -4,8 +4,10 @@ import android.util.Log
 import com.google.gson.Gson
 import com.proyek.foolens.data.remote.api.ApiService
 import com.proyek.foolens.data.remote.dto.ErrorResponse
+import com.proyek.foolens.data.remote.dto.ProductScanResponse
+import com.proyek.foolens.data.util.DataMapper
 import com.proyek.foolens.data.util.NetworkResult
-import com.proyek.foolens.domain.model.Allergen
+import com.proyek.foolens.domain.model.Product
 import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
@@ -21,78 +23,75 @@ class ProductRepositoryImpl @Inject constructor(
 ) : ProductRepository {
 
     private val TAG = "ProductRepositoryImpl"
+    private val gson = Gson()
 
-    override suspend fun scanProductBarcode(barcode: String): Flow<NetworkResult<ProductScanResult>> = flow {
+    override suspend fun scanProductBarcode(
+        barcode: String?,
+        product: Product?
+    ): Flow<NetworkResult<ProductScanResult>> = flow {
         emit(NetworkResult.Loading)
-
         try {
-            Log.d(TAG, "Scanning barcode: $barcode")
+            if (product != null) {
+                Log.d(TAG, "Using product data from ScanHistory: $product")
+                val scanResult = ProductScanResult(
+                    scannedBarcode = barcode ?: "Unknown",
+                    found = true,
+                    product = product,
+                    detectedAllergens = emptyList(),
+                    hasAllergens = false
+                )
+                emit(NetworkResult.Success(scanResult))
+            } else if (barcode != null) {
+                // Panggil API dengan POST /products/scan
+                Log.d(TAG, "Scanning product with barcode: $barcode")
+                val request = mapOf("barcode" to barcode)
+                val response = apiService.scanProductBarcode(request)
 
-            val response = apiService.scanProductBarcode(mapOf(
-                "barcode" to barcode
-            ))
-
-            if (response.isSuccessful) {
-                val scanResponse = response.body()
-                Log.d(TAG, "Barcode scan successful, result: $scanResponse")
-
-                if (scanResponse != null) {
-                    try {
-                        // Map the response to domain model
-                        val product = scanResponse.product?.toProduct()
-
-                        // Map detected allergens if any
-                        val detectedAllergens = scanResponse.detectedAllergens?.map { allergenDto ->
-                            Allergen(
-                                id = allergenDto.id.toIntOrNull() ?: 0,
-                                name = allergenDto.name,
-                                severityLevel = (allergenDto.confidenceLevel * 3).toInt().coerceIn(1, 3), // Convert confidence to severity 1-3
-                                description = null,
-                                alternativeNames = null
-                            )
-                        } ?: emptyList()
-
-                        val scanResult = ProductScanResult(
-                            scannedBarcode = scanResponse.scannedBarcode ?: barcode,
-                            found = scanResponse.found,
-                            product = product,
-                            detectedAllergens = detectedAllergens,
-                            hasAllergens = scanResponse.hasAllergens ?: (detectedAllergens.isNotEmpty())
-                        )
-
+                if (response.isSuccessful) {
+                    val scanResponse = response.body()
+                    Log.d(TAG, "Deserialized response body: ${gson.toJson(scanResponse)}")
+                    if (scanResponse?.found == true) {
+                        val scanResult = DataMapper.mapProductScanResponseToDomain(scanResponse, barcode)
+                        Log.d(TAG, "Mapped ProductScanResult: $scanResult")
                         emit(NetworkResult.Success(scanResult))
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error mapping scan response: ${e.message}", e)
-                        emit(NetworkResult.Error("Error memproses respons: ${e.message}"))
+                    } else {
+                        val errorMessage = scanResponse?.message ?: "Produk tidak ditemukan"
+                        Log.w(TAG, "Failed to get product details: $errorMessage")
+                        emit(NetworkResult.Error(errorMessage))
                     }
                 } else {
-                    Log.e(TAG, "Scan response is empty")
-                    emit(NetworkResult.Error("Respons scan barcode kosong"))
+                    val errorBody = response.errorBody()?.string()
+                    Log.w(TAG, "Failed to get product details: HTTP ${response.code()}, $errorBody")
+                    try {
+                        if (!errorBody.isNullOrEmpty()) {
+                            val errorResponse = gson.fromJson(errorBody, ErrorResponse::class.java)
+                            emit(NetworkResult.Error(errorResponse.message ?: "Gagal mengambil detail produk"))
+                        } else {
+                            emit(NetworkResult.Error("Gagal mengambil detail produk: HTTP ${response.code()}"))
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing error response: ${e.message}")
+                        emit(NetworkResult.Error("Terjadi kesalahan saat memproses respons: ${e.message}"))
+                    }
                 }
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.e(TAG, "Barcode scan failed with code: ${response.code()}, error body: $errorBody")
-
-                try {
-                    if (!errorBody.isNullOrEmpty()) {
-                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                        emit(NetworkResult.Error(errorResponse.message ?: "Scan barcode gagal"))
-                    } else {
-                        emit(NetworkResult.Error("Scan barcode gagal: ${response.message()}"))
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing error response: ${e.message}")
-                    emit(NetworkResult.Error("Terjadi kesalahan saat memproses respons: ${e.message}"))
-                }
+                Log.w(TAG, "No barcode or product data available")
+                emit(NetworkResult.Error("Tidak ada data produk atau barcode yang valid"))
             }
         } catch (e: HttpException) {
             Log.e(TAG, "HttpException: ${e.message()}", e)
-            emit(NetworkResult.Error("Kesalahan jaringan: ${e.message()}"))
+            if (e.code() == 404) {
+                emit(NetworkResult.Error("Produk tidak ditemukan"))
+            } else if (e.code() == 401 || e.code() == 403) {
+                emit(NetworkResult.Error("Sesi tidak valid. Silakan login kembali."))
+            } else {
+                emit(NetworkResult.Error("Kesalahan jaringan: ${e.message()}"))
+            }
         } catch (e: IOException) {
             Log.e(TAG, "IOException: ${e.message}", e)
             emit(NetworkResult.Error("Tidak dapat terhubung ke server. Periksa koneksi internet Anda."))
         } catch (e: Exception) {
-            Log.e(TAG, "General exception: ${e.message}", e)
+            Log.e(TAG, "Error fetching product details: ${e.message}", e)
             emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
         }
     }

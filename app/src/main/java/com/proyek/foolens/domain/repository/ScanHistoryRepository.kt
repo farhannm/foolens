@@ -1,12 +1,13 @@
 package com.proyek.foolens.domain.repository
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.ScanHistory
 import kotlinx.coroutines.flow.Flow
 import com.proyek.foolens.util.Constants
 
 interface ScanHistoryRepository {
-    suspend fun saveScan(barcode: String): Flow<NetworkResult<ScanHistory>>
+    suspend fun saveScan(barcode: String, scanResult: ProductScanResult): Flow<NetworkResult<ScanHistory>>
     suspend fun deleteScan(scanId: String): Flow<NetworkResult<Unit>>
     suspend fun getScanHistory(
         limit: Int = Constants.DEFAULT_PAGE_SIZE,

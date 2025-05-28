@@ -349,7 +349,7 @@ fun HomeContent(
 
                 Text(
                     text = "See All",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.Blue,
                     modifier = Modifier
                         .clickable(onClick = onHistoryClick)

@@ -8,6 +8,11 @@ import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenResponse
 import com.proyek.foolens.data.remote.dto.UserDto
+import com.proyek.foolens.data.remote.dto.ScanDtoRequest
+import com.proyek.foolens.data.remote.dto.SaveScanResponse
+import com.proyek.foolens.data.remote.dto.DeleteScanResponse
+import com.proyek.foolens.data.remote.dto.ProductDto
+import com.proyek.foolens.data.remote.dto.ScanHistoryListResponse
 import com.proyek.foolens.util.Constants
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -106,20 +111,20 @@ interface ApiService {
     // Scan history endpoints
     @POST(Constants.ENDPOINT_SAVE_SCAN)
     suspend fun saveScan(
-        @Body scanRequest: Map<String, Any>
-    ): Response<Map<String, Any>>
+        @Body request: ScanDtoRequest
+    ): Response<SaveScanResponse>
 
     @DELETE(Constants.ENDPOINT_DELETE_SCAN)
     suspend fun deleteScan(
         @Path("scan_id") scanId: Int
-    ): Response<Map<String, Any>>
+    ): Response<DeleteScanResponse>
 
     @GET(Constants.ENDPOINT_GET_SCAN_HISTORY)
     suspend fun getScanHistory(
         @Query("limit") limit: Int = Constants.DEFAULT_PAGE_SIZE,
         @Query("page") page: Int = Constants.DEFAULT_PAGE_NUMBER,
         @Query("safety_filter") safetyFilter: String? = null
-    ): Response<Map<String, Any>>
+    ): Response<ScanHistoryListResponse>
 
     @GET(Constants.ENDPOINT_GET_SCAN_COUNT)
     suspend fun getTodayScanCount(): Response<Map<String, Any>>

@@ -5,11 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -26,28 +22,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.ui.component.ConfirmationDialog
-import com.proyek.foolens.ui.theme.Typography
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.proyek.foolens.R
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +43,6 @@ fun ScanHistoryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
 
-    // Menampilkan Snackbar untuk error atau penghapusan
     LaunchedEffect(state.error, showDeleteDialog) {
         when {
             state.error != null -> {
@@ -127,7 +109,9 @@ fun ScanHistoryScreen(
                             HistoryScan(
                                 name = scanHistory.product?.productName ?: "Produk Tidak Dikenal",
                                 allergens = scanHistory.unsafeAllergens?.joinToString() ?: "Tidak Ada",
-                                onClick = { onNavigateToDetail(scanHistory.id) },
+                                onClick = {
+                                    onNavigateToDetail(scanHistory.id)
+                                },
                                 modifier = Modifier.weight(1f)
                             )
                             IconButton(
@@ -146,7 +130,6 @@ fun ScanHistoryScreen(
         }
     }
 
-    // Dialog konfirmasi penghapusan
     if (showDeleteDialog != null) {
         ConfirmationDialog(
             title = "Hapus Riwayat",
@@ -196,13 +179,11 @@ fun HistoryScan(
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.Black
                 )
-
                 Text(
                     text = "Risky Ingredients",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Black
                 )
-
                 Text(
                     text = allergens,
                     style = MaterialTheme.typography.bodySmall,
@@ -210,7 +191,6 @@ fun HistoryScan(
                     color = Color.Blue
                 )
             }
-
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowRight,
                 contentDescription = "Next",

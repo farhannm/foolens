@@ -1,9 +1,13 @@
 package com.proyek.foolens.data.util
 
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.proyek.foolens.data.remote.dto.AllergenCategoryDto
 import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
 import com.proyek.foolens.data.remote.dto.AllergenDto
+import com.proyek.foolens.data.remote.dto.NutritionalInfoDto
+import com.proyek.foolens.data.remote.dto.ProductDto
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.ScanHistoryDto
 import com.proyek.foolens.data.remote.dto.UserAllergenDto
@@ -11,6 +15,8 @@ import com.proyek.foolens.data.remote.dto.UserDto
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.AllergenDetectionResult
+import com.proyek.foolens.domain.model.NutritionalInfo
+import com.proyek.foolens.domain.model.Product
 import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.model.User
@@ -171,7 +177,7 @@ object DataMapper {
      */
     fun mapProductScanResponseToDomain(response: ProductScanResponse, barcode: String): ProductScanResult {
         // Map product if found
-        val product = response.product?.toProduct()
+        val product = response.product?.let { mapProductDtoToDomain(it) }
 
         // Map detected allergens
         val detectedAllergens = response.detectedAllergens?.map { allergenDto ->
@@ -200,20 +206,54 @@ object DataMapper {
      * @return ScanHistory domain model
      */
     fun mapScanHistoryDtoToDomain(dto: ScanHistoryDto): ScanHistory {
-        Log.d(TAG, "Mapping ScanHistoryDto: id=${dto.id}, barcode=${dto.productId}")
-        try {
-            return ScanHistory(
-                id = dto.id,
-                userId = dto.userId,
-                productId = dto.productId,
-                isSafe = dto.isSafe,
-                unsafeAllergens = dto.unsafeAllergens,
-                product = dto.product?.toProduct(),
-                createdAt = dateFormat.parse(dto.createdAt) ?: Date()
-            )
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+        dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+        val createdAt = try {
+            dateFormat.parse(dto.createdAt) ?: Date()
         } catch (e: Exception) {
-            Log.e(TAG, "Error mapping ScanHistoryDto: ${e.message}", e)
-            throw IllegalStateException("Gagal memetakan ScanHistoryDto: ${e.message}")
+            Date()
         }
+        return ScanHistory(
+            id = dto.id.toString(),
+            userId = dto.userId.toString(),
+            productId = dto.productId.toString(),
+            isSafe = dto.isSafe,
+            unsafeAllergens = dto.unsafeAllergens ?: emptyList(),
+            product = dto.product?.let { mapProductDtoToDomain(it) },
+            createdAt = createdAt
+        )
+    }
+
+    fun mapNutritionalInfoDtoToDomain(dto: NutritionalInfoDto): NutritionalInfo {
+        return NutritionalInfo(
+            fat = dto.fat,
+            carbs = dto.carbs,
+            protein = dto.protein,
+            calories = dto.calories
+        )
+    }
+
+    fun mapProductDtoToDomain(dto: ProductDto): Product {
+        val nutritionalInfo = when (dto.nutritionalInfoDto) {
+            is Map<*, *> -> mapNutritionalInfoDtoToDomain(
+                Gson().fromJson(
+                    Gson().toJson(dto.nutritionalInfoDto),
+                    object : TypeToken<NutritionalInfoDto>() {}.type
+                )
+            )
+            else -> null
+        }
+
+        return Product(
+            id = dto.id.toString(),
+            productName = dto.productName,
+            brand = dto.brand,
+            barcode = dto.barcode,
+            imageUrl = dto.imageUrl,
+            ingredients = dto.ingredients,
+            categoryId = dto.categoryId,
+            nutritionalInfo = nutritionalInfo,
+            popularityScore = dto.popularityScore
+        )
     }
 }

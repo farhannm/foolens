@@ -3,9 +3,11 @@ package com.proyek.foolens.data.repository
 import android.util.Log
 import com.google.gson.Gson
 import com.proyek.foolens.data.remote.api.ApiService
-import com.proyek.foolens.data.remote.dto.*
+import com.proyek.foolens.data.remote.dto.ErrorResponse
+import com.proyek.foolens.data.remote.dto.ScanDtoRequest
 import com.proyek.foolens.data.util.DataMapper
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.ScanHistory
 import com.proyek.foolens.domain.repository.ScanHistoryRepository
 import com.proyek.foolens.util.Constants
@@ -13,6 +15,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
+import java.util.UUID
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,50 +28,56 @@ class ScanHistoryRepositoryImpl @Inject constructor(
     private val TAG = "ScanHistoryRepositoryImpl"
     private val gson = Gson()
 
-    override suspend fun saveScan(barcode: String): Flow<NetworkResult<ScanHistory>> = flow {
+    override suspend fun saveScan(barcode: String, scanResult: ProductScanResult): Flow<NetworkResult<ScanHistory>> = flow {
         emit(NetworkResult.Loading)
         try {
             Log.d(TAG, "Saving scan with barcode: $barcode")
-            val request = ScanDtoRequest(barcode = barcode)
-            val response = apiService.saveScan(mapOf("barcode" to barcode))
+            val request = ScanDtoRequest(
+                barcode = barcode,
+                productId = scanResult.product?.id?.toInt() ?: throw IllegalStateException("Product ID not available"),
+                isSafe = scanResult.hasAllergens?.not() ?: true,
+                userId = null
+            )
+            Log.d(TAG, "Request body: ${gson.toJson(request)}")
+            val response = apiService.saveScan(request)
 
             if (response.isSuccessful) {
-                val saveResponse = response.body()?.let {
-                    SaveScanResponse(
-                        status = it["status"] as String,
-                        message = it["message"] as String?,
-                        data = it["data"] as SaveScanResponseData
-                    )
-                }
-                if (saveResponse?.status == "success" && saveResponse.data.scanHistory != null) {
-                    val scanHistory = DataMapper.mapScanHistoryDtoToDomain(saveResponse.data.scanHistory)
+                val saveResponse = response.body()
+                Log.d(TAG, "Deserialized response body: ${gson.toJson(saveResponse)}")
+                if (saveResponse?.status == "success" && saveResponse.data != null) {
+                    val scanHistory = DataMapper.mapScanHistoryDtoToDomain(saveResponse.data)
+                    Log.d(TAG, "Mapped ScanHistory: $scanHistory")
                     emit(NetworkResult.Success(scanHistory))
                 } else {
-                    val errorResponse = response.body()?.let {
-                        gson.fromJson(gson.toJson(it), ErrorResponse::class.java)
-                    }
-                    val errorMessage = errorResponse?.message
-                        ?: errorResponse?.errorDetails
-                        ?: "Gagal menyimpan riwayat pemindaian"
+                    val errorMessage = saveResponse?.message ?: "Data riwayat scan tidak tersedia"
                     Log.e(TAG, "Failed to save scan: $errorMessage")
                     emit(NetworkResult.Error(errorMessage))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                val errorResponse = errorBody?.let { gson.fromJson(it, ErrorResponse::class.java) }
-                val errorMessage = errorResponse?.message
-                    ?: errorResponse?.errorDetails
-                    ?: errorBody
-                    ?: "Gagal menyimpan riwayat pemindaian"
-                Log.e(TAG, "Error: ${response.code()}, $errorMessage")
-                emit(NetworkResult.Error(errorMessage))
+                Log.e(TAG, "Error: ${response.code()}, $errorBody")
+                try {
+                    if (!errorBody.isNullOrEmpty()) {
+                        val errorResponse = gson.fromJson(errorBody, ErrorResponse::class.java)
+                        emit(NetworkResult.Error(errorResponse.message ?: "Gagal menyimpan scan"))
+                    } else {
+                        emit(NetworkResult.Error("Gagal menyimpan scan: ${response.message()}"))
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing error response: ${e.message}")
+                    emit(NetworkResult.Error("Terjadi kesalahan saat memproses respons: ${e.message}"))
+                }
             }
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP Exception: ${e.message()}, ${e.code()}", e)
-            emit(NetworkResult.Error("Error jaringan: ${e.message()}"))
+            Log.e(TAG, "HttpException: ${e.message()}", e)
+            if (e.code() == 401 || e.code() == 403) {
+                emit(NetworkResult.Error("Sesi tidak valid. Silakan login kembali."))
+            } else {
+                emit(NetworkResult.Error("Kesalahan jaringan: ${e.message()}"))
+            }
         } catch (e: IOException) {
-            Log.e(TAG, "IO Exception: ${e.message}", e)
-            emit(NetworkResult.Error("Tidak dapat terhubung ke server"))
+            Log.e(TAG, "IOException: ${e.message}", e)
+            emit(NetworkResult.Error("Tidak dapat terhubung ke server. Periksa koneksi internet Anda."))
         } catch (e: Exception) {
             Log.e(TAG, "General exception: ${e.message}", e)
             emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
@@ -81,17 +91,11 @@ class ScanHistoryRepositoryImpl @Inject constructor(
             val response = apiService.deleteScan(scanId.toInt())
 
             if (response.isSuccessful) {
-                val deleteResponse = response.body()?.let {
-                    DeleteScanResponse(status = it["status"] as String, message = it["message"] as String?)
-                }
+                val deleteResponse = response.body()
                 if (deleteResponse?.status == "success") {
                     emit(NetworkResult.Success(Unit))
                 } else {
-                    val errorResponse = response.body()?.let {
-                        gson.fromJson(gson.toJson(it), ErrorResponse::class.java)
-                    }
-                    val errorMessage = errorResponse?.message
-                        ?: errorResponse?.errorDetails
+                    val errorMessage = deleteResponse?.message
                         ?: "Gagal menghapus riwayat pemindaian"
                     Log.e(TAG, "Failed to delete scan: $errorMessage")
                     emit(NetworkResult.Error(errorMessage))
@@ -102,7 +106,7 @@ class ScanHistoryRepositoryImpl @Inject constructor(
                 val errorMessage = errorResponse?.message
                     ?: errorResponse?.errorDetails
                     ?: errorBody
-                    ?: "Gagal menghapus riwayat pemindaian"
+                    ?: "Gagal menghapus riwayat pemindaian (HTTP ${response.code()})"
                 Log.e(TAG, "Error: ${response.code()}, $errorMessage")
                 emit(NetworkResult.Error(errorMessage))
             }
@@ -118,58 +122,50 @@ class ScanHistoryRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getScanHistory(
-        limit: Int,
-        page: Int,
-        safetyFilter: String?
-    ): Flow<NetworkResult<List<ScanHistory>>> = flow {
+    override suspend fun getScanHistory(limit: Int, page: Int, safetyFilter: String?): Flow<NetworkResult<List<ScanHistory>>> = flow {
         emit(NetworkResult.Loading)
         try {
             Log.d(TAG, "Fetching scan history: limit=$limit, page=$page, safetyFilter=$safetyFilter")
             val response = apiService.getScanHistory(limit, page, safetyFilter)
-
             if (response.isSuccessful) {
-                val responseBody = response.body()
-                if (responseBody != null && responseBody["status"] == "success") {
-                    val data = responseBody["data"]
-                    val scanHistories = if (data is List<*>) {
-                        // Handle kasus data adalah list (kosong atau berisi ScanHistoryDto)
-                        (data as List<ScanHistoryDto>).map { DataMapper.mapScanHistoryDtoToDomain(it) }
-                    } else if (data is Map<*, *>) {
-                        // Handle kasus data adalah ScanHistoryListResponseData
-                        val listResponseData = gson.fromJson(gson.toJson(data), ScanHistoryListResponseData::class.java)
-                        listResponseData.scanHistory.map { DataMapper.mapScanHistoryDtoToDomain(it) }
-                    } else {
-                        // Data kosong atau format tidak dikenal
-                        emptyList()
+                val scanResponse = response.body()
+                Log.d(TAG, "Deserialized response body: ${gson.toJson(scanResponse)}")
+                if (scanResponse?.status == "success") {
+                    val scanHistories = scanResponse.data.map { scanHistoryDto ->
+                        DataMapper.mapScanHistoryDtoToDomain(scanHistoryDto)
                     }
+                    Log.d(TAG, "Mapped ScanHistories: $scanHistories")
                     emit(NetworkResult.Success(scanHistories))
                 } else {
-                    val errorResponse = response.body()?.let {
-                        gson.fromJson(gson.toJson(it), ErrorResponse::class.java)
-                    }
-                    val errorMessage = errorResponse?.message
-                        ?: errorResponse?.errorDetails
-                        ?: "Gagal mengambil riwayat pemindaian"
+                    val errorMessage = "Gagal mengambil riwayat pemindaian"
                     Log.e(TAG, "Failed to fetch scan history: $errorMessage")
                     emit(NetworkResult.Error(errorMessage))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                val errorResponse = errorBody?.let { gson.fromJson(it, ErrorResponse::class.java) }
-                val errorMessage = errorResponse?.message
-                    ?: errorResponse?.errorDetails
-                    ?: errorBody
-                    ?: "Gagal mengambil riwayat pemindaian"
-                Log.e(TAG, "Error: ${response.code()}, $errorMessage")
-                emit(NetworkResult.Error(errorMessage))
+                Log.e(TAG, "Error: ${response.code()}, $errorBody")
+                try {
+                    if (!errorBody.isNullOrEmpty()) {
+                        val errorResponse = gson.fromJson(errorBody, ErrorResponse::class.java)
+                        emit(NetworkResult.Error(errorResponse.message ?: "Gagal mengambil riwayat pemindaian"))
+                    } else {
+                        emit(NetworkResult.Error("Gagal mengambil riwayat pemindaian: ${response.message()}"))
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing error response: ${e.message}")
+                    emit(NetworkResult.Error("Terjadi kesalahan saat memproses respons: ${e.message}"))
+                }
             }
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP Exception: ${e.message()}, ${e.code()}", e)
-            emit(NetworkResult.Error("Error jaringan: ${e.message()}"))
+            Log.e(TAG, "HttpException: ${e.message()}", e)
+            if (e.code() == 401 || e.code() == 403) {
+                emit(NetworkResult.Error("Sesi tidak valid. Silakan login kembali."))
+            } else {
+                emit(NetworkResult.Error("Kesalahan jaringan: ${e.message()}"))
+            }
         } catch (e: IOException) {
-            Log.e(TAG, "IO Exception: ${e.message}", e)
-            emit(NetworkResult.Error("Tidak dapat terhubung ke server"))
+            Log.e(TAG, "IOException: ${e.message}", e)
+            emit(NetworkResult.Error("Tidak dapat terhubung ke server. Periksa koneksi internet Anda."))
         } catch (e: Exception) {
             Log.e(TAG, "General exception: ${e.message}", e)
             emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
