@@ -2,6 +2,7 @@ package com.proyek.foolens.util
 
 object Constants {
     const val BASE_URL = "https://foolens.my.id/api/"
+//    const val BASE_URL = "http://192.168.101.8:8000/api/"
 
     // Network Constants
     const val NETWORK_TIMEOUT = 30L
@@ -18,6 +19,7 @@ object Constants {
     // Profile Endpoints
     const val ENDPOINT_GET_PROFILE = "profile"
     const val ENDPOINT_UPDATE_PROFILE = "profile"
+    const val ENDPOINT_CHANGE_PASSWORD = "users/{user_id}/change-password"
 
     // Allergen Endpoints
     const val ENDPOINT_DETECT_ALLERGENS = "allergens/detect"

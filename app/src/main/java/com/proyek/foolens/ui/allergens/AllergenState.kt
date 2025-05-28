@@ -15,11 +15,4 @@ data class AllergensState(
     val commonAllergens: List<Allergen> = emptyList(),
     val isLoadingCommon: Boolean = false,
     val commonErrorMessage: String? = null,
-
-    // Tab selection
-    val selectedTab: Tab = Tab.PERSONAL
-) {
-    enum class Tab {
-        PERSONAL, COMMON
-    }
-}
+)

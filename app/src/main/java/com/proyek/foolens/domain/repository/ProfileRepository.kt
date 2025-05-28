@@ -27,4 +27,18 @@ interface ProfileRepository {
         phoneNumber: String? = null,
         profilePicture: File? = null
     ): Flow<NetworkResult<Profile>>
+
+    /**
+     * Mengganti kata sandi pengguna
+     *
+     * @param userId ID pengguna
+     * @param currentPassword Kata sandi saat ini
+     * @param newPassword Kata sandi baru
+     * @return Flow<NetworkResult<ChangePasswordResponse>> hasil penggantian kata sandi
+     */
+    suspend fun changePassword(
+        userId: String,
+        currentPassword: String,
+        newPassword: String
+    ): Flow<NetworkResult<com.proyek.foolens.data.remote.dto.ChangePasswordResponse>>
 }

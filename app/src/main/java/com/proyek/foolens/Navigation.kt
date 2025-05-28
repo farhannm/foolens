@@ -27,11 +27,16 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.UserAllergen
+import com.proyek.foolens.ui.allergens.AllergenGuideScreen
 import com.proyek.foolens.ui.allergens.AllergensScreen
 import com.proyek.foolens.ui.allergens.AllergensViewModel
 import com.proyek.foolens.ui.allergens.add.AddAllergenScreen
 import com.proyek.foolens.ui.allergens.detail.AllergenDetailScreen
 import com.proyek.foolens.ui.auth.login.LoginScreen
+import com.proyek.foolens.ui.auth.password.InputPhoneNumberScreen
+import com.proyek.foolens.ui.auth.password.ConfirmPhoneNumberScreen
+import com.proyek.foolens.ui.auth.password.VerificationCodeScreen
+import com.proyek.foolens.ui.auth.password.ChangePasswordScreen
 import com.proyek.foolens.ui.auth.register.RegisterScreen
 import com.proyek.foolens.ui.component.BottomNavItem
 import com.proyek.foolens.ui.component.FoolensBottomNavigation
@@ -164,6 +169,10 @@ fun MainNavHost(navController: NavHostController) {
                     navController.navigate("landing") {
                         popUpTo("login") { inclusive = true }
                     }
+                },
+                onForgotPasswordClick = {
+                    // Navigate to forgot password flow
+                    navController.navigate("forgot_password_phone")
                 }
             )
         }
@@ -187,6 +196,74 @@ fun MainNavHost(navController: NavHostController) {
                     // Navigate back to landing screen
                     navController.navigate("landing") {
                         popUpTo("register") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Forgot Password Flow
+        composable("forgot_password_phone") {
+            InputPhoneNumberScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onNext = { phoneNumber ->
+                    navController.navigate("forgot_password_confirm/$phoneNumber")
+                }
+            )
+        }
+
+        composable(
+            route = "forgot_password_confirm/{phoneNumber}",
+            arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+            ConfirmPhoneNumberScreen(
+                phoneNumber = phoneNumber,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onNext = { phone ->
+                    navController.navigate("forgot_password_verify/$phone")
+                }
+            )
+        }
+
+        composable(
+            route = "forgot_password_verify/{phoneNumber}",
+            arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+            VerificationCodeScreen(
+                phoneNumber = phoneNumber,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onVerified = { resetToken ->
+                    navController.navigate("forgot_password_change/$phoneNumber/$resetToken")
+                }
+            )
+        }
+
+        composable(
+            route = "forgot_password_change/{phoneNumber}/{resetToken}",
+            arguments = listOf(
+                navArgument("phoneNumber") { type = NavType.StringType },
+                navArgument("resetToken") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+            val resetToken = backStackEntry.arguments?.getString("resetToken") ?: ""
+            ChangePasswordScreen(
+                phoneNumber = phoneNumber,
+                resetToken = resetToken,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onPasswordChanged = {
+                    // Navigate back to login after successful password change
+                    navController.navigate("login") {
+                        popUpTo("forgot_password_phone") { inclusive = true }
                     }
                 }
             )
@@ -263,9 +340,20 @@ fun MainNavHost(navController: NavHostController) {
                     navController.navigate("add_allergen")
                 },
                 onNavigateToAllergenDetail = { allergen ->
-                    // Demo: simpan allergen yang dipilih
                     selectedAllergen = allergen
                     navController.navigate("allergen_detail")
+                },
+                onNavigateToGuide = {
+                    navController.navigate("allergen_guide")
+                }
+
+            )
+        }
+
+        composable("allergen_guide") {
+            AllergenGuideScreen(
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

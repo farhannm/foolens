@@ -13,3 +13,4 @@ sealed class NetworkResult<out T> {
     ) : NetworkResult<Nothing>()
     object Loading : NetworkResult<Nothing>()
 }
+
