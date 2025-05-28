@@ -24,62 +24,28 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.proyek.foolens.ui.component.LoadingView
 import com.proyek.foolens.ui.theme.OnBackground
-import com.proyek.foolens.util.SmsReceiver
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerificationCodeScreen(
-    phoneNumber: String,
+    email: String,
     onBack: () -> Unit,
     onVerified: (String) -> Unit,
     viewModel: ChangePasswordViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-
     val codeLength = 6
     val digits = remember { mutableStateListOf(*Array(codeLength) { "" }) }
     val focusRequesters = remember { List(codeLength) { FocusRequester() } }
-
-    // Combine digits into verification code
     val verificationCode = digits.joinToString("")
 
-    // Autofocus field pertama saat screen ditampilkan
     LaunchedEffect(Unit) {
         focusRequesters[0].requestFocus()
     }
 
-    LaunchedEffect(Unit) {
-        SmsReceiver.listener = object : SmsReceiver.SmsReceivedListener {
-            override fun onSmsReceived(sms: String) {
-                digits.forEachIndexed { index, _ ->
-                    if (index < sms.length) {
-                        digits[index] = sms[index].toString()
-                    }
-                }
-                viewModel.verifyCode(phoneNumber, sms)
-            }
-
-            override fun onTimeout() {
-                // Use the new updateState method
-                viewModel.updateState { currentState ->
-                    currentState.copy(errorMessage = "Timeout menunggu SMS. Silakan masukkan kode secara manual.")
-                }
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            SmsReceiver.listener = null
-        }
-    }
-
-    // Navigasi ke step berikutnya jika sudah verifikasi
     LaunchedEffect(state.isVerified) {
         if (state.isVerified) {
-            state.resetToken?.let { token ->
-                onVerified(token)
-            }
+            onVerified(email)
         }
     }
 
@@ -133,7 +99,7 @@ fun VerificationCodeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Kami mengirimkan 6 digit kode verifikasi ke nomor HP yang terdaftar pada akun.",
+                text = "Kami mengirimkan 6 digit kode verifikasi ke email yang terdaftar pada akun.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = OnBackground,
                 lineHeight = 20.sp,
@@ -212,7 +178,7 @@ fun VerificationCodeScreen(
 
             Button(
                 onClick = {
-                    viewModel.verifyCode(phoneNumber, verificationCode)
+                    viewModel.verifyCode(email, verificationCode)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

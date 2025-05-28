@@ -148,52 +148,6 @@ class ProfileRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun changePassword(
-        userId: String,
-        currentPassword: String,
-        newPassword: String
-    ): Flow<NetworkResult<ChangePasswordResponse>> = flow {
-        emit(NetworkResult.Loading)
-
-        try {
-            Log.d(TAG, "Changing password for user: $userId")
-
-            val response = apiService.changePassword(
-                userId = userId,
-                passwordRequest = mapOf(
-                    "current_password" to currentPassword,
-                    "password" to newPassword,
-                    "password_confirmation" to newPassword
-                )
-            )
-
-            if (response.isSuccessful) {
-                val changePasswordResponse = response.body()
-
-                if (changePasswordResponse != null && changePasswordResponse.status == "success") {
-                    Log.d(TAG, "Password changed successfully")
-                    emit(NetworkResult.Success(changePasswordResponse))
-                } else {
-                    Log.e(TAG, "Failed to change password: ${changePasswordResponse?.status}")
-                    emit(NetworkResult.Error(changePasswordResponse?.message ?: "Gagal mengganti kata sandi"))
-                }
-            } else {
-                val errorMessage = response.errorBody()?.string() ?: "Gagal mengganti kata sandi"
-                Log.e(TAG, "Error: ${response.code()}, $errorMessage")
-                emit(NetworkResult.Error(errorMessage))
-            }
-        } catch (e: HttpException) {
-            Log.e(TAG, "HTTP Exception: ${e.message()}, ${e.code()}", e)
-            emit(NetworkResult.Error("Error jaringan: ${e.message()}"))
-        } catch (e: IOException) {
-            Log.e(TAG, "IO Exception: ${e.message}", e)
-            emit(NetworkResult.Error("Tidak dapat terhubung ke server. Periksa koneksi internet Anda."))
-        } catch (e: Exception) {
-            Log.e(TAG, "General exception: ${e.message}", e)
-            emit(NetworkResult.Error("Terjadi kesalahan: ${e.message}"))
-        }
-    }
-
     /**
      * Helper method to convert relative image paths to full URLs
      */

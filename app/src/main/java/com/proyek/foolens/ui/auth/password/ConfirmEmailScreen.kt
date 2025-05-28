@@ -25,15 +25,15 @@ import com.proyek.foolens.ui.theme.OnBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfirmPhoneNumberScreen(
-    phoneNumber: String,
+fun ConfirmEmailScreen(
+    email: String,
     onBack: () -> Unit,
     onNext: (String) -> Unit,
     viewModel: ChangePasswordViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    val maskedPhoneNumber = "****${phoneNumber.takeLast(4)}"
+    val maskedEmail = email.replaceBeforeLast("@", "****")
 
     Box(
         modifier = Modifier
@@ -67,20 +67,17 @@ fun ConfirmPhoneNumberScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Forgot ",
-                modifier = Modifier
-                    .fillMaxWidth(),
+                text = "Forgot",
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Left,
                 fontSize = 45.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A1A)
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Password",
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Left,
                 fontSize = 45.sp,
                 fontWeight = FontWeight.Bold,
@@ -89,7 +86,7 @@ fun ConfirmPhoneNumberScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Nomor telepon dibawah terdaftar dan digunakan untuk me-reset password Anda.",
+                text = "Email di bawah terdaftar dan digunakan untuk me-reset kata sandi Anda.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = OnBackground,
                 lineHeight = 20.sp
@@ -118,8 +115,8 @@ fun ConfirmPhoneNumberScreen(
                 Column {
                     Row {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_chat),
-                            contentDescription = "Message Icon",
+                            painter = painterResource(id = R.drawable.ic_email),
+                            contentDescription = "Email Icon",
                             tint = Color.Black,
                             modifier = Modifier.size(30.dp)
                         )
@@ -128,7 +125,7 @@ fun ConfirmPhoneNumberScreen(
                         modifier = Modifier.padding(start = 4.dp, top = 8.dp)
                     ) {
                         Text(
-                            text = "Via SMS",
+                            text = "Via Email",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Black,
                             fontWeight = FontWeight.Medium
@@ -138,7 +135,7 @@ fun ConfirmPhoneNumberScreen(
                         modifier = Modifier.padding(start = 4.dp, top = 8.dp)
                     ) {
                         Text(
-                            text = maskedPhoneNumber,
+                            text = maskedEmail,
                             style = MaterialTheme.typography.bodyMedium,
                             color = OnBackground
                         )
@@ -154,17 +151,18 @@ fun ConfirmPhoneNumberScreen(
                     .padding(bottom = 16.dp)
             ) {
                 Button(
-                    onClick = { viewModel.resendVerificationCode(context as Activity); onNext(phoneNumber) },
+                    onClick = { viewModel.resendVerificationCode(context as Activity) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFC7F131)
-                    )
+                    ),
+                    enabled = !state.isLoading
                 ) {
                     Text(
-                        text = "Resend Code",
+                        text = "Resend Email",
                         color = Color.Black,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.SemiBold,
@@ -175,7 +173,7 @@ fun ConfirmPhoneNumberScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { onNext(phoneNumber) },
+                    onClick = { onNext(email) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

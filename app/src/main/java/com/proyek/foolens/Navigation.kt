@@ -33,8 +33,8 @@ import com.proyek.foolens.ui.allergens.AllergensViewModel
 import com.proyek.foolens.ui.allergens.add.AddAllergenScreen
 import com.proyek.foolens.ui.allergens.detail.AllergenDetailScreen
 import com.proyek.foolens.ui.auth.login.LoginScreen
-import com.proyek.foolens.ui.auth.password.InputPhoneNumberScreen
-import com.proyek.foolens.ui.auth.password.ConfirmPhoneNumberScreen
+import com.proyek.foolens.ui.auth.password.InputEmailScreen
+import com.proyek.foolens.ui.auth.password.ConfirmEmailScreen
 import com.proyek.foolens.ui.auth.password.VerificationCodeScreen
 import com.proyek.foolens.ui.auth.password.ChangePasswordScreen
 import com.proyek.foolens.ui.auth.register.RegisterScreen
@@ -172,7 +172,7 @@ fun MainNavHost(navController: NavHostController) {
                 },
                 onForgotPasswordClick = {
                     // Navigate to forgot password flow
-                    navController.navigate("forgot_password_phone")
+                    navController.navigate("forgot_password_email")
                 }
             )
         }
@@ -202,68 +202,66 @@ fun MainNavHost(navController: NavHostController) {
         }
 
         // Forgot Password Flow
-        composable("forgot_password_phone") {
-            InputPhoneNumberScreen(
+        composable("forgot_password_email") {
+            InputEmailScreen(
                 onBack = {
                     navController.popBackStack()
                 },
-                onNext = { phoneNumber ->
-                    navController.navigate("forgot_password_confirm/$phoneNumber")
+                onNext = { email ->
+                    navController.navigate("forgot_password_confirm/$email")
                 }
             )
         }
 
         composable(
-            route = "forgot_password_confirm/{phoneNumber}",
-            arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+            route = "forgot_password_confirm/{email}",
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
-            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
-            ConfirmPhoneNumberScreen(
-                phoneNumber = phoneNumber,
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            ConfirmEmailScreen(
+                email = email,
                 onBack = {
                     navController.popBackStack()
                 },
-                onNext = { phone ->
-                    navController.navigate("forgot_password_verify/$phone")
+                onNext = { email ->
+                    navController.navigate("forgot_password_verify/$email")
                 }
             )
         }
 
         composable(
-            route = "forgot_password_verify/{phoneNumber}",
-            arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+            route = "forgot_password_verify/{email}",
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
-            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+            val email = backStackEntry.arguments?.getString("email") ?: ""
             VerificationCodeScreen(
-                phoneNumber = phoneNumber,
+                email = email,
                 onBack = {
                     navController.popBackStack()
                 },
                 onVerified = { resetToken ->
-                    navController.navigate("forgot_password_change/$phoneNumber/$resetToken")
+                    navController.navigate("forgot_password_change/$email/$resetToken")
                 }
             )
         }
 
         composable(
-            route = "forgot_password_change/{phoneNumber}/{resetToken}",
+            route = "forgot_password_change/{email}/{resetToken}",
             arguments = listOf(
-                navArgument("phoneNumber") { type = NavType.StringType },
+                navArgument("email") { type = NavType.StringType },
                 navArgument("resetToken") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
-            val resetToken = backStackEntry.arguments?.getString("resetToken") ?: ""
+            val email = backStackEntry.arguments?.getString("email") ?: ""
             ChangePasswordScreen(
-                phoneNumber = phoneNumber,
-                resetToken = resetToken,
+                email = email,
                 onBack = {
                     navController.popBackStack()
                 },
                 onPasswordChanged = {
                     // Navigate back to login after successful password change
                     navController.navigate("login") {
-                        popUpTo("forgot_password_phone") { inclusive = true }
+                        popUpTo("forgot_password_email") { inclusive = true }
                     }
                 }
             )
@@ -346,7 +344,6 @@ fun MainNavHost(navController: NavHostController) {
                 onNavigateToGuide = {
                     navController.navigate("allergen_guide")
                 }
-
             )
         }
 

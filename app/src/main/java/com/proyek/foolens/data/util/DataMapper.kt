@@ -8,11 +8,14 @@ import com.proyek.foolens.data.remote.dto.ProductSafetyStatsDto
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.ScanCountDto
 import com.proyek.foolens.data.remote.dto.ScanHistoryDto
+import com.proyek.foolens.data.remote.dto.SendOtpResponse
 import com.proyek.foolens.data.remote.dto.UserAllergenDto
 import com.proyek.foolens.data.remote.dto.UserDto
+import com.proyek.foolens.data.remote.dto.VerifyOtpResponse
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.AllergenCategory
 import com.proyek.foolens.domain.model.AllergenDetectionResult
+import com.proyek.foolens.domain.model.Otp
 import com.proyek.foolens.domain.model.ProductSafetyStats
 import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.model.ScanCount
@@ -28,12 +31,6 @@ object DataMapper {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
-    /**
-     * Mengkonversi UserDto (dari API) ke User domain model
-     *
-     * @param dto UserDto dari API
-     * @return User domain model untuk digunakan di aplikasi
-     */
     fun mapUserDtoToDomain(dto: UserDto): User {
         return User(
             id = dto.data.userId?.toString() ?: "",
@@ -45,23 +42,13 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi AllergenDto ke Allergen domain model
-     *
-     * @param dto AllergenDto dari API
-     * @return Allergen domain model
-     */
     fun mapAllergenDtoToDomain(dto: AllergenDto): Allergen {
-        // Coba gunakan name atau allergenName (mana yang tidak null)
         val allergenName = when {
             !dto.name.isNullOrEmpty() -> dto.name
             !dto.allergenName.isNullOrEmpty() -> dto.allergenName
-            else -> null // Keduanya null
+            else -> null
         }
-
-        // Handle null name dengan memberikan nilai default berdasarkan ID
         val finalName = if (allergenName.isNullOrEmpty()) {
-            // Log warning dan coba gunakan nilai fallback berdasarkan ID yang umum
             Log.w(TAG, "Null allergen name detected for allergen ID: ${dto.id}, using fallback name")
             when (dto.id) {
                 2 -> "Gandum"
@@ -82,7 +69,6 @@ object DataMapper {
         } else {
             allergenName
         }
-
         return Allergen(
             id = dto.id,
             name = finalName,
@@ -92,30 +78,20 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi AllergenDetectionResponse ke AllergenDetectionResult domain model
-     *
-     * @param response AllergenDetectionResponse dari API
-     * @return AllergenDetectionResult domain model
-     */
     fun mapAllergenDetectionResponseToDomain(response: AllergenDetectionResponse): AllergenDetectionResult {
-        // Log untuk debugging
         Log.d(TAG, "Processing detection response with ${response.detectedAllergens.size} allergens")
         response.detectedAllergens.forEach { allergen ->
             Log.d(TAG, "Processing allergen: ID=${allergen.id}, Name=${allergen.name ?: allergen.allergenName}, Severity=${allergen.severityLevel}")
         }
-
         try {
             val mappedAllergens = response.detectedAllergens.map { mapAllergenDtoToDomain(it) }
-
             return AllergenDetectionResult(
-                ocrText = response.ocrText ?: "",  // Handle null OCR text
+                ocrText = response.ocrText ?: "",
                 detectedAllergens = mappedAllergens,
-                hasAllergens = response.hasAllergens ?: false  // Handle null hasAllergens
+                hasAllergens = response.hasAllergens ?: false
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error mapping allergen detection response: ${e.message}", e)
-            // Return empty result on error
             return AllergenDetectionResult(
                 ocrText = response.ocrText ?: "",
                 detectedAllergens = emptyList(),
@@ -124,70 +100,48 @@ object DataMapper {
         }
     }
 
-    /**
-     * Mengkonversi UserAllergenDto ke UserAllergen domain model
-     *
-     * @param dto UserAllergenDto dari API
-     * @return UserAllergen domain model
-     */
     fun mapUserAllergenDtoToDomain(dto: UserAllergenDto): UserAllergen {
-        // Handle null category
         val category = if (dto.category != null) {
             mapAllergenCategoryDtoToDomain(dto.category)
         } else {
-            // Fallback kategori jika null
             AllergenCategory(
                 id = 0,
                 name = "Uncategorized",
                 icon = null
             )
         }
-
         return UserAllergen(
             id = dto.id,
-            name = dto.name ?: "Unknown Allergen", // Provide default for null name
-            description = dto.description ?: "",  // Handle null description
-            alternativeNames = dto.alternativeNames ?: "",  // Handle null alternativeNames
+            name = dto.name ?: "Unknown Allergen",
+            description = dto.description ?: "",
+            alternativeNames = dto.alternativeNames ?: "",
             category = category,
-            severityLevel = dto.severityLevel ?: 1,  // Default to 1 if null
-            notes = dto.notes ?: "",  // Handle null notes
+            severityLevel = dto.severityLevel ?: 1,
+            notes = dto.notes ?: "",
             createdAt = dto.createdAt,
             updatedAt = dto.updatedAt
         )
     }
 
-    /**
-     * Mengkonversi AllergenCategoryDto ke AllergenCategory domain model
-     *
-     * @param dto AllergenCategoryDto dari API
-     * @return AllergenCategory domain model
-     */
     fun mapAllergenCategoryDtoToDomain(dto: AllergenCategoryDto): AllergenCategory {
         return AllergenCategory(
             id = dto.id,
-            name = dto.name ?: "Unknown",  // Provide default for null name
+            name = dto.name ?: "Unknown",
             icon = dto.icon
         )
     }
 
-    /**
-     * Maps ProductScanResponse to ProductScanResult domain model
-     */
     fun mapProductScanResponseToDomain(response: ProductScanResponse, barcode: String): ProductScanResult {
-        // Map product if found
         val product = response.product?.toProduct()
-
-        // Map detected allergens
         val detectedAllergens = response.detectedAllergens?.map { allergenDto ->
             Allergen(
                 id = allergenDto.id.toIntOrNull() ?: 0,
                 name = allergenDto.name,
-                severityLevel = (allergenDto.confidenceLevel * 3).toInt().coerceIn(1, 3), // Convert confidence to severity 1-3
+                severityLevel = (allergenDto.confidenceLevel * 3).toInt().coerceIn(1, 3),
                 description = null,
                 alternativeNames = null
             )
         } ?: emptyList()
-
         return ProductScanResult(
             scannedBarcode = response.scannedBarcode ?: barcode,
             found = response.found,
@@ -197,12 +151,6 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi ScanHistoryDto ke ScanHistory domain model
-     *
-     * @param dto ScanHistoryDto dari API
-     * @return ScanHistory domain model
-     */
     fun mapScanHistoryDtoToDomain(dto: ScanHistoryDto): ScanHistory {
         Log.d(TAG, "Mapping ScanHistoryDto: id=${dto.id}, barcode=${dto.productId}")
         try {
@@ -221,10 +169,6 @@ object DataMapper {
         }
     }
 
-    /**
-     * Mengkonversi ScanCountDto ke ScanCount domain model
-     *
-     */
     fun mapScanCountDtoToDomain(scanCountDto: ScanCountDto): ScanCount {
         return ScanCount(
             totalCount = scanCountDto.totalCount,
@@ -234,10 +178,6 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi ProductSafetyStatsDto ke ProductSafetyStats domain model
-     *
-     */
     fun mapProductSafetyStatsDtoToDomain(dto: ProductSafetyStatsDto): ProductSafetyStats {
         return ProductSafetyStats(
             totalCount = dto.totalCount,
@@ -249,4 +189,37 @@ object DataMapper {
         )
     }
 
+    /**
+     * Mengkonversi SendOtpResponse ke OtpResponse domain model
+     *
+     * @param response SendOtpResponse dari API
+     * @return OtpResponse domain model
+     */
+    fun mapSendOtpResponseToDomain(response: SendOtpResponse): Otp {
+        return Otp(
+            status = response.status,
+            message = response.message ?: "",
+            email = response.data?.email ?: "",
+            expiresIn = response.data?.expiresIn,
+            sendingMethod = response.data?.sendingMethod,
+            verifiedAt = null
+        )
+    }
+
+    /**
+     * Mengkonversi VerifyOtpResponse ke OtpResponse domain model
+     *
+     * @param response VerifyOtpResponse dari API
+     * @return OtpResponse domain model
+     */
+    fun mapVerifyOtpResponseToDomain(response: VerifyOtpResponse): Otp {
+        return Otp(
+            status = response.status,
+            message = response.message ?: "",
+            email = response.data?.email ?: "",
+            expiresIn = null,
+            sendingMethod = null,
+            verifiedAt = response.data?.verifiedAt,
+        )
+    }
 }

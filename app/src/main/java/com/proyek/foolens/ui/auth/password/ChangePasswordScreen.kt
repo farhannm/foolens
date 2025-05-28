@@ -29,8 +29,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangePasswordScreen(
-    phoneNumber: String,
-    resetToken: String,
+    email: String,
     onBack: () -> Unit,
     onPasswordChanged: () -> Unit,
     viewModel: ChangePasswordViewModel = hiltViewModel()
@@ -41,7 +40,6 @@ fun ChangePasswordScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    // Tampilkan pesan error jika ada
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let { error ->
             scope.launch {
@@ -50,7 +48,6 @@ fun ChangePasswordScreen(
         }
     }
 
-    // Navigasi ke login setelah kata sandi berhasil diubah
     LaunchedEffect(state.isPasswordChanged) {
         if (state.isPasswordChanged) {
             onPasswordChanged()
@@ -58,9 +55,7 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
@@ -167,7 +162,7 @@ fun ChangePasswordScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
-                            viewModel.changePassword(phoneNumber, resetToken, newPassword, confirmPassword)
+                            viewModel.changePassword(email, newPassword, confirmPassword)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -176,7 +171,7 @@ fun ChangePasswordScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFC7F131)
                         ),
-                        enabled = newPassword.isNotEmpty() && confirmPassword.isNotEmpty()
+                        enabled = !state.isLoading && newPassword.isNotEmpty() && confirmPassword.isNotEmpty()
                     ) {
                         Text(
                             text = "Change Password",

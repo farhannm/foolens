@@ -1,5 +1,6 @@
 package com.proyek.foolens.domain.repository
 
+import com.proyek.foolens.data.remote.dto.ChangePasswordResponse
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.model.Profile
 import kotlinx.coroutines.flow.Flow
@@ -28,17 +29,4 @@ interface ProfileRepository {
         profilePicture: File? = null
     ): Flow<NetworkResult<Profile>>
 
-    /**
-     * Mengganti kata sandi pengguna
-     *
-     * @param userId ID pengguna
-     * @param currentPassword Kata sandi saat ini
-     * @param newPassword Kata sandi baru
-     * @return Flow<NetworkResult<ChangePasswordResponse>> hasil penggantian kata sandi
-     */
-    suspend fun changePassword(
-        userId: String,
-        currentPassword: String,
-        newPassword: String
-    ): Flow<NetworkResult<com.proyek.foolens.data.remote.dto.ChangePasswordResponse>>
 }

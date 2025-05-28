@@ -34,20 +34,4 @@ class ProfileUseCase @Inject constructor(
     ): Flow<NetworkResult<Profile>> {
         return profileRepository.updateProfile(name, phoneNumber, profilePicture)
     }
-
-    /**
-     * Mengganti kata sandi pengguna
-     *
-     * @param userId ID pengguna
-     * @param currentPassword Kata sandi saat ini
-     * @param newPassword Kata sandi baru
-     * @return Flow<NetworkResult<ChangePasswordResponse>> hasil penggantian kata sandi
-     */
-    suspend fun changePassword(
-        userId: String,
-        currentPassword: String,
-        newPassword: String
-    ): Flow<NetworkResult<com.proyek.foolens.data.remote.dto.ChangePasswordResponse>> {
-        return profileRepository.changePassword(userId, currentPassword, newPassword)
-    }
 }

@@ -1,6 +1,7 @@
 package com.proyek.foolens.domain.repository
 
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Otp
 import com.proyek.foolens.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
@@ -48,4 +49,30 @@ interface AuthRepository {
      * @return Flow<NetworkResult<User>> data user terbaru dari API jika berhasil atau error jika gagal
      */
     fun getCurrentUser(): Flow<NetworkResult<User>>
+
+    /**
+     * Mengirim OTP ke email pengguna
+     *
+     * @param email email pengguna
+     * @return Flow<NetworkResult<OtpResponse>> hasil pengiriman OTP
+     */
+    suspend fun sendOtp(email: String): Flow<NetworkResult<Otp>>
+
+    /**
+     * Memverifikasi OTP yang dikirim ke email pengguna
+     *
+     * @param email email pengguna
+     * @param otp kode OTP yang dimasukkan
+     * @return Flow<NetworkResult<OtpResponse>> hasil verifikasi OTP
+     */
+    suspend fun verifyOtp(email: String, otp: String): Flow<NetworkResult<Otp>>
+
+    /**
+     * Mereset password setelah dikirim OTP
+     *
+     * @param email email pengguna
+     * @param password password baru
+     * @return Flow<NetworkResult<Unit>>
+     */
+    suspend fun resetPassword(email: String, newPassword: String): Flow<NetworkResult<Unit>>
 }

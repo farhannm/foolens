@@ -7,10 +7,12 @@ import com.proyek.foolens.data.remote.dto.ProductSafetyStatsResponse
 import com.proyek.foolens.data.remote.dto.ProductScanResponse
 import com.proyek.foolens.data.remote.dto.ProfileResponse
 import com.proyek.foolens.data.remote.dto.ScanCountResponse
+import com.proyek.foolens.data.remote.dto.SendOtpResponse
 import com.proyek.foolens.data.remote.dto.UpdateUserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenRequest
 import com.proyek.foolens.data.remote.dto.UserAllergenResponse
 import com.proyek.foolens.data.remote.dto.UserDto
+import com.proyek.foolens.data.remote.dto.VerifyOtpResponse
 import com.proyek.foolens.util.Constants
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -41,6 +43,21 @@ interface ApiService {
     @POST(Constants.ENDPOINT_LOGOUT)
     suspend fun logout(): Response<Map<String, String>>
 
+    @POST(Constants.ENDPOINT_SEND_OTP)
+    suspend fun sendOtp(
+        @Body otpRequest: Map<String, String>
+    ): Response<SendOtpResponse>
+
+    @POST(Constants.ENDPOINT_VERIFY_OTP)
+    suspend fun verifyOtp(
+        @Body otpRequest: Map<String, String>
+    ): Response<VerifyOtpResponse>
+
+    @POST(Constants.ENDPOINT_RESET_PASSWORD)
+    suspend fun resetPassword(
+        @Body resetPasswordRequest: Map<String, String>
+    ) : Response<ChangePasswordResponse>
+
     @GET(Constants.ENDPOINT_PROFILE)
     suspend fun getUserProfile(): Response<UserDto>
 
@@ -54,12 +71,6 @@ interface ApiService {
         @Part profilePicture: MultipartBody.Part?,
         @PartMap params: Map<String, @JvmSuppressWildcards RequestBody>
     ): Response<ProfileResponse>
-
-    @POST(Constants.ENDPOINT_CHANGE_PASSWORD)
-    suspend fun changePassword(
-        @Path("user_id") userId: String,
-        @Body passwordRequest: Map<String, String>
-    ): Response<ChangePasswordResponse>
 
     // Allergen endpoints
     @POST(Constants.ENDPOINT_DETECT_ALLERGENS)
