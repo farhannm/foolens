@@ -14,7 +14,7 @@ data class UserDto(
 ) {
     data class UserData(
         @SerializedName("user_id")
-        val userId: Int?, // Diubah dari String menjadi Int? (nullable integer)
+        val userId: Int?,
 
         @SerializedName("name")
         val name: String,

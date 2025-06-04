@@ -12,5 +12,5 @@ data class HomeState(
         val scanCount: ScanCount? = null,
         val productSafetyStats: ProductSafetyStats? = null,
         val isLoading: Boolean = true,
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
 )

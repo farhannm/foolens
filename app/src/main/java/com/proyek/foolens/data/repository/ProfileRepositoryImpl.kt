@@ -88,6 +88,16 @@ class ProfileRepositoryImpl @Inject constructor(
         try {
             Log.d(TAG, "Updating user profile")
 
+            // Validate profile picture size if provided (2MB limit)
+            profilePicture?.let {
+                val maxSizeInBytes = 2 * 1024 * 1024 // 2MB in bytes
+                if (it.length() > maxSizeInBytes) {
+                    Log.e(TAG, "Profile picture size exceeds 2MB limit: ${it.length()} bytes")
+                    emit(NetworkResult.Error("Ukuran foto profil melebihi batas 2MB"))
+                    return@flow
+                }
+            }
+
             // Prepare multipart form data
             val params = mutableMapOf<String, okhttp3.RequestBody>()
 
@@ -134,7 +144,12 @@ class ProfileRepositoryImpl @Inject constructor(
             } else {
                 val errorMessage = response.errorBody()?.string() ?: "Gagal memperbarui data profil"
                 Log.e(TAG, "Error: ${response.code()}, $errorMessage")
-                emit(NetworkResult.Error(errorMessage))
+                // Check if the error is related to file upload failure
+                if (errorMessage.contains("profile_picture", ignoreCase = true)) {
+                    emit(NetworkResult.Error("Foto profil gagal diunggah"))
+                } else {
+                    emit(NetworkResult.Error(errorMessage))
+                }
             }
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP Exception: ${e.message()}, ${e.code()}", e)

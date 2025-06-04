@@ -108,46 +108,24 @@ fun ScanHistoryScreen(
                         ) {
                             HistoryScan(
                                 name = scanHistory.product?.productName ?: "Produk Tidak Dikenal",
-                                allergens = scanHistory.unsafeAllergens?.joinToString() ?: "Tidak Ada",
+                                allergens = scanHistory.unsafeAllergens ?: emptyList(),
                                 onClick = {
                                     onNavigateToDetail(scanHistory.id)
                                 },
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(
-                                onClick = { showDeleteDialog = scanHistory.id }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Hapus",
-                                    tint = Color.Red
-                                )
-                            }
                         }
                     }
                 }
             }
         }
     }
-
-    if (showDeleteDialog != null) {
-        ConfirmationDialog(
-            title = "Hapus Riwayat",
-            message = "Apakah Anda yakin ingin menghapus riwayat ini?",
-            icon = painterResource(id = R.drawable.ilustration_sticker),
-            onDismiss = { showDeleteDialog = null },
-            onConfirm = {
-                viewModel.deleteScan(showDeleteDialog!!)
-                showDeleteDialog = null
-            }
-        )
-    }
 }
 
 @Composable
 fun HistoryScan(
     name: String,
-    allergens: String,
+    allergens: List<String>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -184,12 +162,21 @@ fun HistoryScan(
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Black
                 )
-                Text(
-                    text = allergens,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = FontStyle.Italic,
-                    color = Color.Blue
-                )
+                if (allergens.isEmpty()) {
+                    Text(
+                        text = "is Safe!",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        color = Color(0xFF53D030)
+                    )
+                } else {
+                    Text(
+                        text = allergens.joinToString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.Red
+                    )
+                }
             }
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowRight,

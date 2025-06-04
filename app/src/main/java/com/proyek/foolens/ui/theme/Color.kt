@@ -1,5 +1,4 @@
 package com.proyek.foolens.ui.theme
-
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors

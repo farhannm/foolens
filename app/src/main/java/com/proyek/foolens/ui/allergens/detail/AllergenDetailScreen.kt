@@ -1,5 +1,4 @@
 package com.proyek.foolens.ui.allergens.detail
-
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background

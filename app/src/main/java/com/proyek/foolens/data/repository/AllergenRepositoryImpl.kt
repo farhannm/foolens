@@ -1,5 +1,4 @@
 package com.proyek.foolens.data.repository
-
 import android.util.Log
 import com.google.gson.Gson
 import com.proyek.foolens.data.remote.api.ApiService

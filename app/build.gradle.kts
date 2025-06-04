@@ -76,8 +76,11 @@ dependencies {
     implementation("androidx.paging:paging-compose:3.3.0")
     implementation("androidx.paging:paging-runtime-ktx:3.3.0")
 
+    implementation("io.coil-kt.coil3:coil:3.1.0")
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okio:okio:3.9.0")
     implementation(libs.androidx.runtime.livedata)
 
     implementation ("com.jakewharton.timber:timber:5.0.1")

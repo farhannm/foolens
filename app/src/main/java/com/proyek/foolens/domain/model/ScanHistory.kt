@@ -1,5 +1,4 @@
 package com.proyek.foolens.domain.model
-
 import java.util.Date
 
 data class ScanHistory(

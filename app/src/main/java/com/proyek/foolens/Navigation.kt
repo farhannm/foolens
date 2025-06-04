@@ -43,6 +43,7 @@ import com.proyek.foolens.ui.component.FoolensBottomNavigation
 import com.proyek.foolens.ui.history.ScanHistoryScreen
 import com.proyek.foolens.ui.history.detail.ScanDetailScreen
 import com.proyek.foolens.ui.home.HomeScreen
+import com.proyek.foolens.ui.home.HomeViewModel
 import com.proyek.foolens.ui.landing.LandingScreen
 import com.proyek.foolens.ui.profile.EditProfileScreen
 import com.proyek.foolens.ui.profile.ProfileScreen
@@ -269,20 +270,33 @@ fun MainNavHost(navController: NavHostController) {
 
         // Main app screens with bottom navigation
         composable(BottomNavItem.Home.route) {
+            val viewModel: HomeViewModel = hiltViewModel()
+            val navBackStackEntry = navController.currentBackStackEntry
+            val shouldRefresh = navBackStackEntry
+                ?.savedStateHandle
+                ?.get<Boolean>("should_refresh_user_data") ?: false
+
+            LaunchedEffect(shouldRefresh) {
+                if (shouldRefresh) {
+                    viewModel.refreshData()
+                    navBackStackEntry?.savedStateHandle?.set("should_refresh_user_data", false)
+                }
+            }
+
             HomeScreen(
                 onLogout = {
-                    // Saat logout, kembali ke login screen (skip landing)
                     navController.navigate("login") {
                         popUpTo("home") { inclusive = true }
                     }
                 },
                 onProfileClick = {
-                    // Navigate to profile screen
                     navController.navigate("profile")
                 },
                 onHistoryClick = {
-                    // Navigate to list history screen
                     navController.navigate("history")
+                },
+                onNavigateToDetail = { scanId ->
+                    navController.navigate("scan_detail/$scanId")
                 }
             )
         }
@@ -307,7 +321,12 @@ fun MainNavHost(navController: NavHostController) {
         composable("edit_profile") {
             val viewModel: ProfileViewModel = hiltViewModel()
             EditProfileScreen(
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("should_refresh_user_data", true)
+                    navController.popBackStack()
+                },
                 viewModel = viewModel
             )
         }

@@ -63,6 +63,9 @@ import com.proyek.foolens.R
 import com.proyek.foolens.ui.component.ConfirmationDialog
 import com.proyek.foolens.ui.theme.Typography
 import com.proyek.foolens.data.util.ImageUtils
+import com.proyek.foolens.ui.history.ScanHistoryState
+import com.proyek.foolens.ui.history.ScanHistoryViewModel
+import com.proyek.foolens.util.TokenManager
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -74,9 +77,12 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onProfileClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    onNavigateToDetail: (String) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+    historyViewModel: ScanHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val historyState by historyViewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -114,13 +120,17 @@ fun HomeScreen(
         "$dayOfWeek, $month ${currentDate.dayOfMonth}"
     }
 
-    // Show error message as snackbar if present
-    LaunchedEffect(state.errorMessage) {
+    LaunchedEffect(state.errorMessage, historyState.error) {
         if (state.errorMessage != null) {
-            scope.launch {
-                snackbarHostState.showSnackbar(state.errorMessage ?: "An error occurred")
-            }
+            scope.launch { snackbarHostState.showSnackbar(state.errorMessage!!) }
         }
+        if (historyState.error != null) {
+            scope.launch { snackbarHostState.showSnackbar(historyState.error!!) }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        historyViewModel.fetchScanHistory()
     }
 
     Scaffold(
@@ -142,11 +152,12 @@ fun HomeScreen(
                 state.user != null -> {
                     HomeContent(
                         state = state,
+                        historyState = historyState,
                         formattedDate = formattedDate,
-                        onRefresh = { viewModel.loadUserData() },
-                        onLogout = { showLogoutDialog = true },
+                        onRefresh = { viewModel.refreshData() },
                         onProfileClick = onProfileClick,
                         onHistoryClick = onHistoryClick,
+                        onNavigateToDetail = onNavigateToDetail
                     )
                 }
                 else -> {
@@ -158,37 +169,27 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = state.errorMessage ?: "No user data available",
+                            text = state.errorMessage ?: "Tidak ada data pengguna",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyLarge
                         )
-
                         Spacer(modifier = Modifier.height(16.dp))
-
                         Button(
-                            onClick = { viewModel.loadUserData() },
+                            onClick = { viewModel.refreshData() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFFC7F131)
                             )
                         ) {
-                            Text(
-                                text = "Refresh",
-                                color = Color.Black
-                            )
+                            Text(text = "Muat Ulang", color = Color.Black)
                         }
-
                         Spacer(modifier = Modifier.height(16.dp))
-
                         Button(
                             onClick = { showLogoutDialog = true },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red
                             )
                         ) {
-                            Text(
-                                text = "Logout",
-                                color = Color.White
-                            )
+                            Text(text = "Keluar", color = Color.White)
                         }
                     }
                 }
@@ -196,7 +197,6 @@ fun HomeScreen(
         }
     }
 
-    // Logout confirmation dialog
     if (showLogoutDialog) {
         ConfirmationDialog(
             title = "Keluar",
@@ -214,15 +214,17 @@ fun HomeScreen(
 @Composable
 fun HomeContent(
     state: HomeState,
+    historyState: ScanHistoryState,
     formattedDate: String,
     onRefresh: () -> Unit,
-    onLogout: () -> Unit,
     onProfileClick: () -> Unit,
-    onHistoryClick: () -> Unit
+    onHistoryClick: () -> Unit,
+    onNavigateToDetail: (String) -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
+    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) } // Pass token to ImageLoader
+    val logTag = "HomeContent"
 
     Column(
         modifier = Modifier
@@ -230,7 +232,6 @@ fun HomeContent(
             .verticalScroll(scrollState)
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // Top bar with date and logout
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -243,19 +244,15 @@ fun HomeContent(
                 style = Typography.bodySmall,
                 color = Color.Gray
             )
-
-            Row {
-                IconButton(onClick = onRefresh) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = Color.Gray
-                    )
-                }
+            IconButton(onClick = onRefresh) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Muat Ulang",
+                    tint = Color.Gray
+                )
             }
         }
 
-        // Row for greeting and profile image
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,50 +260,57 @@ fun HomeContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Column for greeting text
             Column {
                 Text(
                     text = "Hallo,",
                     style = Typography.headlineSmall,
                     fontWeight = FontWeight.Normal
                 )
-
                 Text(
-                    text = state.user?.name ?: "",
+                    text = state.user?.name ?: "Pengguna",
                     style = Typography.headlineMedium,
                     fontWeight = FontWeight.Medium
                 )
-
                 Text(
-                    text = state.user?.email ?: "",
+                    text = state.user?.email ?: "Tidak ada email",
                     style = Typography.bodyMedium,
                     color = Color.Gray
                 )
             }
 
-            // Profile image (clickable to navigate to profile)
             Box(
                 modifier = Modifier
                     .clickable(onClick = onProfileClick)
             ) {
                 if (state.user?.profilePicture != null && state.user.profilePicture.isNotEmpty()) {
+                    val fullImageUrl = ImageUtils.getFullImageUrl(state.user.profilePicture)
+                    android.util.Log.d(logTag, "Attempting to load profile image with URL: $fullImageUrl")
                     AsyncImage(
                         model = ImageUtils.createProfileImageRequest(
-                            context,
-                            state.user.profilePicture,
-                            R.drawable.profile_image
+                            context = context,
+                            imageUrl = state.user.profilePicture,
+                            placeholderId = R.drawable.profile_image
                         ),
-                        contentDescription = "Profile Image",
+                        contentDescription = "Gambar Profil",
                         modifier = Modifier
                             .size(50.dp)
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop,
-                        imageLoader = imageLoader
+                        imageLoader = imageLoader,
+                        onError = {
+                            android.util.Log.e(logTag, "Failed to load profile image: ${state.user.profilePicture}, Error: ${it.result.throwable?.message}")
+                        },
+                        onSuccess = {
+                            android.util.Log.d(logTag, "Profile image loaded successfully: ${state.user.profilePicture}")
+                        },
+                        placeholder = painterResource(id = R.drawable.profile_image),
+                        error = painterResource(id = R.drawable.profile_image) // Fallback image
                     )
                 } else {
+                    android.util.Log.w(logTag, "Profile picture is null or empty: profilePicture=${state.user?.profilePicture}")
                     Image(
                         painter = painterResource(id = R.drawable.profile_image),
-                        contentDescription = "Profile Image",
+                        contentDescription = "Gambar Profil",
                         modifier = Modifier
                             .size(50.dp)
                             .clip(CircleShape),
@@ -328,8 +332,8 @@ fun HomeContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column{
-            Row (
+        Column {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
@@ -342,21 +346,47 @@ fun HomeContent(
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
-
                 Text(
-                    text = "See All",
+                    text = "View All",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Blue,
-                    modifier = Modifier
-                        .clickable(onClick = onHistoryClick)
+                    modifier = Modifier.clickable(onClick = onHistoryClick)
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
-            HistoryScan(name = "Oreo", allergens = "Milk", onClick = { println("Click") })
-            HistoryScan(name = "Indomie", allergens = "Gluten, Soy", onClick = { println("Click") })
-            HistoryScan(name = "SilverQueen", allergens = "Milk, Almond", onClick = { println("Click") })
+            when {
+                historyState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+                historyState.error != null -> {
+                    Text(
+                        text = historyState.error ?: "Gagal memuat riwayat pemindaian",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+                historyState.scanHistories.isEmpty() -> {
+                    Text(
+                        text = "Tidak ada riwayat pemindaian",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+                else -> {
+                    historyState.scanHistories.take(3).forEach { scanHistory ->
+                        HistoryScan(
+                            name = scanHistory.product?.productName ?: "Produk Tidak Dikenal",
+                            allergens = scanHistory.unsafeAllergens?.joinToString() ?: "Tidak Ada",
+                            onClick = { onNavigateToDetail(scanHistory.id) }
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -369,7 +399,6 @@ fun TotalScannedProductCard(
     safePercentage: Double,
     newScanned: Int
 ) {
-    // Gunakan safePercentage dari response (0.0–100.0), konversi ke 0.0–1.0
     val progress = if (safePercentage > 0) (safePercentage / 100).toFloat() else 0f
 
     Card(
@@ -549,9 +578,14 @@ fun TotalScannedProductCard(
 }
 
 @Composable
-fun HistoryScan(name: String, allergens: String, onClick: () -> Unit) {
+fun HistoryScan(
+    name: String,
+    allergens: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .clickable { onClick() },
@@ -576,16 +610,13 @@ fun HistoryScan(name: String, allergens: String, onClick: () -> Unit) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
                     color = Color.Black
                 )
-
                 Text(
                     text = "Risky Ingredients",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Black
                 )
-
                 Text(
                     text = allergens,
                     style = MaterialTheme.typography.bodySmall,
@@ -593,7 +624,6 @@ fun HistoryScan(name: String, allergens: String, onClick: () -> Unit) {
                     color = Color.Blue
                 )
             }
-
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowRight,
                 contentDescription = "Next",

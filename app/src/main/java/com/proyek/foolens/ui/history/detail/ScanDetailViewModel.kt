@@ -3,6 +3,7 @@ package com.proyek.foolens.ui.history.detail
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.proyek.foolens.data.util.ImageUtils
 import com.proyek.foolens.data.util.NetworkResult
 import com.proyek.foolens.domain.usecases.ProductUseCase
 import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
@@ -35,36 +36,50 @@ class ScanDetailViewModel @Inject constructor(
                         is NetworkResult.Success -> {
                             val scanHistory = historyResult.data.find { it.id == scanId }
                             if (scanHistory != null) {
-                                val barcode = scanHistory.product?.barcode
-                                if (barcode != null && scanHistory.product != null) {
-                                    // Gunakan product dari ScanHistory, tapi cek alergen via API
-                                    productUseCase.scanProductBarcode(barcode, scanHistory.product).collect { productResult ->
+                                // Adjust imageUrl dari scanHistory.product
+                                val adjustedScanProduct = scanHistory.product?.let { product ->
+                                    val adjustedImageUrl = ImageUtils.getFullImageUrl(product.imageUrl)
+                                    Log.d(TAG, "Adjusted scanHistory product imageUrl: $adjustedImageUrl")
+                                    product.copy(imageUrl = adjustedImageUrl)
+                                }
+                                val adjustedScanHistory = scanHistory.copy(product = adjustedScanProduct)
+
+                                val barcode = adjustedScanHistory.product?.barcode
+                                if (barcode != null && adjustedScanHistory.product != null) {
+                                    productUseCase.scanProductBarcode(barcode, adjustedScanHistory.product).collect { productResult ->
                                         when (productResult) {
                                             is NetworkResult.Success -> {
+                                                val productScanResult = productResult.data
+                                                val product = productScanResult.product?.let { prod ->
+                                                    val adjustedImageUrl = ImageUtils.getFullImageUrl(prod.imageUrl)
+                                                    Log.d(TAG, "Adjusted product imageUrl: $adjustedImageUrl")
+                                                    prod.copy(imageUrl = adjustedImageUrl)
+                                                }
+                                                Log.d(TAG, "Product loaded - imageUrl: ${product?.imageUrl}")
                                                 _state.update {
                                                     it.copy(
                                                         isLoading = false,
-                                                        scanHistory = scanHistory,
-                                                        product = scanHistory.product,
-                                                        scannedBarcode = barcode,
-                                                        detectedAllergens = productResult.data.detectedAllergens,
-                                                        unsafeAllergens = scanHistory.unsafeAllergens ?: emptyList(),
-                                                        isSafe = scanHistory.isSafe,
+                                                        scanHistory = adjustedScanHistory,
+                                                        product = product ?: adjustedScanHistory.product,
+                                                        scannedBarcode = productScanResult.scannedBarcode,
+                                                        detectedAllergens = productScanResult.detectedAllergens,
+                                                        unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
+                                                        isSafe = !productScanResult.hasAllergens,
                                                         errorMessage = null
                                                     )
                                                 }
                                             }
                                             is NetworkResult.Error -> {
-                                                // Jika API gagal, gunakan data dari ScanHistory
+                                                Log.e(TAG, "Error loading product: ${productResult.errorMessage}")
                                                 _state.update {
                                                     it.copy(
                                                         isLoading = false,
-                                                        scanHistory = scanHistory,
-                                                        product = scanHistory.product,
+                                                        scanHistory = adjustedScanHistory,
+                                                        product = adjustedScanHistory.product,
                                                         scannedBarcode = barcode,
                                                         detectedAllergens = emptyList(),
-                                                        unsafeAllergens = scanHistory.unsafeAllergens ?: emptyList(),
-                                                        isSafe = scanHistory.isSafe,
+                                                        unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
+                                                        isSafe = adjustedScanHistory.isSafe,
                                                         errorMessage = "Gagal mengambil data alergen: ${productResult.errorMessage}"
                                                     )
                                                 }
@@ -73,21 +88,22 @@ class ScanDetailViewModel @Inject constructor(
                                         }
                                     }
                                 } else {
-                                    // Tidak ada barcode atau product
+                                    Log.w(TAG, "Barcode or product is null for scanId: $scanId")
                                     _state.update {
                                         it.copy(
                                             isLoading = false,
-                                            scanHistory = scanHistory,
-                                            product = scanHistory.product,
+                                            scanHistory = adjustedScanHistory,
+                                            product = adjustedScanHistory.product,
                                             scannedBarcode = null,
                                             detectedAllergens = emptyList(),
-                                            unsafeAllergens = scanHistory.unsafeAllergens ?: emptyList(),
-                                            isSafe = scanHistory.isSafe,
-                                            errorMessage = if (scanHistory.product == null) "Data produk tidak tersedia" else null
+                                            unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
+                                            isSafe = adjustedScanHistory.isSafe,
+                                            errorMessage = if (adjustedScanHistory.product == null) "Data produk tidak tersedia" else null
                                         )
                                     }
                                 }
                             } else {
+                                Log.e(TAG, "Scan history not found for scanId: $scanId")
                                 _state.update {
                                     it.copy(
                                         isLoading = false,
@@ -97,7 +113,7 @@ class ScanDetailViewModel @Inject constructor(
                             }
                         }
                         is NetworkResult.Error -> {
-                            Log.e(TAG, "Error loading scan details: ${historyResult.errorMessage}")
+                            Log.e(TAG, "Error loading scan history: ${historyResult.errorMessage}")
                             _state.update {
                                 it.copy(
                                     isLoading = false,
@@ -115,6 +131,25 @@ class ScanDetailViewModel @Inject constructor(
                         isLoading = false,
                         errorMessage = "Error: ${e.message}"
                     )
+                }
+            }
+        }
+    }
+    fun deleteScan(scanId: String) {
+        viewModelScope.launch {
+            scanHistoryUseCase.deleteScan(scanId).collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        _state.update { it.copy(deleteSuccess = true) }
+                    }
+                    is NetworkResult.Error -> {
+                        _state.update {
+                            it.copy(
+                                errorMessage = result.errorMessage ?: "Gagal menghapus riwayat"
+                            )
+                        }
+                    }
+                    is NetworkResult.Loading -> {}
                 }
             }
         }

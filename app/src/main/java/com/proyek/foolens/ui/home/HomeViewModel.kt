@@ -12,13 +12,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authUseCase: AuthUseCase,
     private val scanHistoryUseCase: ScanHistoryUseCase,
-    private val tokenManager: TokenManager
+    val tokenManager: TokenManager // Changed from private to public
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -29,18 +30,14 @@ class HomeViewModel @Inject constructor(
         loadScanCountData()
     }
 
-    /**
-     * Memuat data user yang sedang login langsung dari API
-     */
     fun loadUserData() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             authUseCase.getCurrentUser().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
                         val user = result.data
-
+                        android.util.Log.d("HomeViewModel", "User data loaded: name=${user.name}, email=${user.email}, profilePicture=${user.profilePicture}")
                         _state.update {
                             it.copy(
                                 user = user,
@@ -48,10 +45,10 @@ class HomeViewModel @Inject constructor(
                                 errorMessage = null
                             )
                         }
-
                         loadProductSafetyStats(user.id.toString())
                     }
                     is NetworkResult.Error -> {
+                        android.util.Log.e("HomeViewModel", "Failed to load user data: ${result.errorMessage}")
                         _state.update {
                             it.copy(
                                 isLoading = false,
@@ -60,22 +57,16 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is NetworkResult.Loading -> {
-                        _state.update {
-                            it.copy(isLoading = true)
-                        }
+                        _state.update { it.copy(isLoading = true) }
                     }
                 }
             }
         }
     }
 
-    /**
-     * Memuat data statistik pemindaian dari API
-     */
     fun loadScanCountData() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             scanHistoryUseCase.getScanCount().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
@@ -96,9 +87,7 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is NetworkResult.Loading -> {
-                        _state.update {
-                            it.copy(isLoading = true)
-                        }
+                        _state.update { it.copy(isLoading = true) }
                     }
                 }
             }
@@ -134,28 +123,18 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
-    /**
-     * Refresh both user and scan count data
-     */
     fun refreshData() {
         loadUserData()
         loadScanCountData()
     }
 
-    /**
-     * Melakukan logout langsung ke API dan menghapus token
-     */
     fun logout() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             authUseCase.logout().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
-                        // Clear token when logout is successful
                         tokenManager.clearToken()
-
                         _state.update {
                             it.copy(
                                 user = null,
@@ -165,9 +144,7 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     is NetworkResult.Error -> {
-                        // Even if there's an error with the API, still clear the token locally
                         tokenManager.clearToken()
-
                         _state.update {
                             it.copy(
                                 user = null,
