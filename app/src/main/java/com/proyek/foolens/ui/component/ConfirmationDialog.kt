@@ -41,7 +41,7 @@ fun ConfirmationDialog(
     icon: Painter = painterResource(id = R.drawable.ilustration_sticker),
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    confirmText: String = "Keluar",
+    confirmText: String = "Hapus",
     dismissText: String = "Kembali"
 ) {
     Dialog(

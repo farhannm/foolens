@@ -52,25 +52,19 @@ import com.proyek.foolens.ui.scan.ScanScreen
 import com.proyek.foolens.ui.splash.SplashScreen
 import com.proyek.foolens.util.DoubleBackPressHandler
 
-/**
- * Komponen navigasi utama aplikasi
- * Mengatur semua rute navigasi dan transisi antar screen
- */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val permissionsState = rememberPermissionState(Manifest.permission.CAMERA)
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
-    val currentRoute = navBackStackEntry?.destination?.route ?: ""
+    val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("?") ?: ""
     val context = LocalContext.current
 
-    // Request camera permission when app starts
     LaunchedEffect(Unit) {
         permissionsState.launchPermissionRequest()
     }
 
-    // Check if the current route is one of the bottom nav routes
     val showBottomBar = currentRoute in listOf(
         BottomNavItem.Home.route,
         BottomNavItem.Allergens.route
@@ -79,13 +73,11 @@ fun AppNavigation() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                // Tambahkan DoubleBackPressHandler di dalam bottom navigation
                 DoubleBackPressHandler(
                     onFirstBackPress = {
                         Toast.makeText(context, "Tekan sekali lagi untuk keluar", Toast.LENGTH_SHORT).show()
                     },
                     onSecondBackPress = {
-                        // Keluar dari aplikasi
                         (context as? Activity)?.finish()
                     }
                 )
@@ -94,11 +86,9 @@ fun AppNavigation() {
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
-                            // Hapus semua route sebelumnya
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true
                             }
-                            // Hindari multiple copies
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -124,7 +114,6 @@ fun MainNavHost(navController: NavHostController) {
         navController = navController,
         startDestination = "splash"
     ) {
-        // Splash Screen - Entry point of the app
         composable("splash") {
             SplashScreen(
                 onNavigateToLanding = {
@@ -133,7 +122,6 @@ fun MainNavHost(navController: NavHostController) {
                     }
                 },
                 onNavigateToHome = {
-                    // Directly navigate to home when user is logged in
                     navController.navigate("home") {
                         popUpTo("splash") { inclusive = true }
                     }
@@ -160,19 +148,16 @@ fun MainNavHost(navController: NavHostController) {
                     }
                 },
                 onLoginSuccess = {
-                    // Navigate to home and clear back stack
                     navController.navigate("home") {
                         popUpTo("landing") { inclusive = true }
                     }
                 },
                 onClose = {
-                    // Navigate back to landing screen
                     navController.navigate("landing") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
                 onForgotPasswordClick = {
-                    // Navigate to forgot password flow
                     navController.navigate("forgot_password_email")
                 }
             )
@@ -186,15 +171,12 @@ fun MainNavHost(navController: NavHostController) {
                     }
                 },
                 onRegisterSuccess = {
-                    // Directly navigate to home when registration is successful
                     Log.d("Navigation", "Registration successful, navigating to home")
                     navController.navigate("home") {
-                        // Clear all previous destinations
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 onClose = {
-                    // Navigate back to landing screen
                     navController.navigate("landing") {
                         popUpTo("register") { inclusive = true }
                     }
@@ -202,7 +184,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Forgot Password Flow
         composable("forgot_password_email") {
             InputEmailScreen(
                 onBack = {
@@ -260,7 +241,6 @@ fun MainNavHost(navController: NavHostController) {
                     navController.popBackStack()
                 },
                 onPasswordChanged = {
-                    // Navigate back to login after successful password change
                     navController.navigate("login") {
                         popUpTo("forgot_password_email") { inclusive = true }
                     }
@@ -268,7 +248,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Main app screens with bottom navigation
         composable(BottomNavItem.Home.route) {
             val viewModel: HomeViewModel = hiltViewModel()
             val navBackStackEntry = navController.currentBackStackEntry
@@ -301,7 +280,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Profile screen
         composable("profile") {
             val viewModel: ProfileViewModel = hiltViewModel()
             ProfileScreen(
@@ -317,7 +295,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Edit Profile screen
         composable("edit_profile") {
             val viewModel: ProfileViewModel = hiltViewModel()
             EditProfileScreen(
@@ -331,7 +308,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Allergens screen dengan navigasi ke detail dan add allergen
         composable(BottomNavItem.Allergens.route) {
             val viewModel: AllergensViewModel = hiltViewModel()
             val navBackStackEntry = navController.currentBackStackEntry
@@ -339,15 +315,10 @@ fun MainNavHost(navController: NavHostController) {
                 ?.savedStateHandle
                 ?.get<Boolean>("should_refresh_allergens") ?: false
 
-            // LaunchedEffect untuk trigger refresh
             LaunchedEffect(shouldRefresh) {
                 if (shouldRefresh) {
                     viewModel.refreshAllergens()
-
-                    // Reset the flag
-                    navBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("should_refresh_allergens", false)
+                    navBackStackEntry?.savedStateHandle?.set("should_refresh_allergens", false)
                 }
             }
 
@@ -374,14 +345,12 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Add allergen screen
         composable("add_allergen") {
             AddAllergenScreen(
                 onClose = {
                     navController.popBackStack()
                 },
                 onSuccess = {
-                    // Set flag di SavedStateHandle untuk refresh
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("should_refresh_allergens", true)
@@ -390,9 +359,7 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Allergen detail screen
         composable("allergen_detail") {
-            // Use the allergen that was stored in navigation scope
             val allergen = selectedAllergen ?: UserAllergen(
                 id = 0,
                 name = "Unknown Allergen",
@@ -415,14 +382,12 @@ fun MainNavHost(navController: NavHostController) {
                     navController.popBackStack()
                 },
                 onSave = {
-                    // Set flag to refresh allergen list when navigating back
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("should_refresh_allergens", true)
                     navController.popBackStack()
                 },
                 onDelete = {
-                    // Set flag to refresh allergen list when navigating back
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("should_refresh_allergens", true)
@@ -431,7 +396,6 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Updated scan screen with OCR-based allergen detection
         composable("scan") {
             ScanScreen(
                 onClose = {
@@ -443,19 +407,31 @@ fun MainNavHost(navController: NavHostController) {
             )
         }
 
-        // Navigate to History Screen
-        composable("history") {
+        composable(
+            route = "history?deletionTriggered={deletionTriggered}",
+            arguments = listOf(
+                navArgument("deletionTriggered") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val deletionTriggered = backStackEntry.arguments?.getBoolean("deletionTriggered") ?: false
             ScanHistoryScreen(
                 onBack = {
-                    navController.popBackStack()
+                    navController.navigate(BottomNavItem.Home.route) {
+                        popUpTo("history") { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToDetail = { scanId ->
                     navController.navigate("scan_detail/$scanId")
-                }
+                },
+                deletionTriggered = deletionTriggered
             )
         }
 
-        // Navigate to Scan Detail
+        // Modifikasi rute scan_detail
         composable(
             route = "scan_detail/{scanId}",
             arguments = listOf(navArgument("scanId") { type = NavType.StringType })
@@ -463,7 +439,11 @@ fun MainNavHost(navController: NavHostController) {
             val scanId = backStackEntry.arguments?.getString("scanId") ?: ""
             ScanDetailScreen(
                 scanId = scanId,
-                onBack = { navController.popBackStack() }
+                onBack = { deletionTriggered ->
+                    navController.navigate("history?deletionTriggered=$deletionTriggered") {
+                        popUpTo("scan_detail") { inclusive = true }
+                    }
+                }
             )
         }
     }

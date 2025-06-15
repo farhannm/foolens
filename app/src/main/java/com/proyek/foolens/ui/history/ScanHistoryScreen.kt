@@ -37,11 +37,18 @@ import com.proyek.foolens.R
 fun ScanHistoryScreen(
     onBack: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
+    deletionTriggered: Boolean = false,
     viewModel: ScanHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(deletionTriggered) {
+        if (deletionTriggered) {
+            viewModel.fetchScanHistory()
+        }
+    }
 
     LaunchedEffect(state.error, showDeleteDialog) {
         when {
