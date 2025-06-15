@@ -101,7 +101,7 @@ fun AllergensScreen(
                         .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Help ?",
+                        text = "Help?",
                         color = Color.White,
                         fontWeight = FontWeight.Medium
                     )

@@ -3,39 +3,18 @@ package com.proyek.foolens.data.util
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.proyek.foolens.data.remote.dto.AllergenCategoryDto
-import com.proyek.foolens.data.remote.dto.AllergenDetectionResponse
-import com.proyek.foolens.data.remote.dto.AllergenDto
-import com.proyek.foolens.data.remote.dto.NutritionalInfoDto
-import com.proyek.foolens.data.remote.dto.ProductDto
-import com.proyek.foolens.data.remote.dto.ProductSafetyStatsDto
-import com.proyek.foolens.data.remote.dto.ProductScanResponse
-import com.proyek.foolens.data.remote.dto.ScanCountDto
-import com.proyek.foolens.data.remote.dto.ScanHistoryDto
-import com.proyek.foolens.data.remote.dto.SendOtpResponse
-import com.proyek.foolens.data.remote.dto.UserAllergenDto
-import com.proyek.foolens.data.remote.dto.UserDto
-import com.proyek.foolens.data.remote.dto.VerifyOtpResponse
-import com.proyek.foolens.domain.model.Allergen
-import com.proyek.foolens.domain.model.AllergenCategory
-import com.proyek.foolens.domain.model.AllergenDetectionResult
-import com.proyek.foolens.domain.model.Otp
-import com.proyek.foolens.domain.model.NutritionalInfo
-import com.proyek.foolens.domain.model.Product
-import com.proyek.foolens.domain.model.ProductSafetyStats
-import com.proyek.foolens.domain.model.ProductScanResult
-import com.proyek.foolens.domain.model.ScanCount
-import com.proyek.foolens.domain.model.ScanHistory
-import com.proyek.foolens.domain.model.User
-import com.proyek.foolens.domain.model.UserAllergen
+import com.proyek.foolens.data.remote.dto.*
+import com.proyek.foolens.domain.model.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 object DataMapper {
     private const val TAG = "DataMapper"
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).apply {
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault()).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
+
+    private val gson = Gson()
 
     fun mapUserDtoToDomain(dto: UserDto): User {
         return User(
@@ -84,6 +63,16 @@ object DataMapper {
         )
     }
 
+    fun mapAllergenItemDtoToDomain(dto: AllergenItemDto): Allergen {
+        return Allergen(
+            id = dto.id.toIntOrNull() ?: 0,
+            name = dto.name,
+            severityLevel = (dto.confidenceLevel * 3).toInt().coerceIn(1, 3),
+            description = null,
+            alternativeNames = null
+        )
+    }
+
     fun mapAllergenDetectionResponseToDomain(response: AllergenDetectionResponse): AllergenDetectionResult {
         Log.d(TAG, "Processing detection response with ${response.detectedAllergens.size} allergens")
         response.detectedAllergens.forEach { allergen ->
@@ -92,14 +81,14 @@ object DataMapper {
         try {
             val mappedAllergens = response.detectedAllergens.map { mapAllergenDtoToDomain(it) }
             return AllergenDetectionResult(
-                ocrText = response.ocrText ?: "",
+                ocrText = response.ocrText,
                 detectedAllergens = mappedAllergens,
-                hasAllergens = response.hasAllergens ?: false
+                hasAllergens = response.hasAllergens
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error mapping allergen detection response: ${e.message}", e)
             return AllergenDetectionResult(
-                ocrText = response.ocrText ?: "",
+                ocrText = response.ocrText,
                 detectedAllergens = emptyList(),
                 hasAllergens = false
             )
@@ -138,35 +127,29 @@ object DataMapper {
     }
 
     fun mapProductScanResponseToDomain(response: ProductScanResponse, barcode: String): ProductScanResult {
-        // Map product if found
         val product = response.product?.let { mapProductDtoToDomain(it) }
-
-        // Map detected allergens
-        val detectedAllergens = response.detectedAllergens?.map { allergenDto ->
-            Allergen(
-                id = allergenDto.id.toIntOrNull() ?: 0,
-                name = allergenDto.name,
-                severityLevel = (allergenDto.confidenceLevel * 3).toInt().coerceIn(1, 3),
-                description = null,
-                alternativeNames = null
-            )
-        } ?: emptyList()
+        val detectedAllergens = response.detectedAllergens?.map { mapAllergenItemDtoToDomain(it) } ?: emptyList()
         return ProductScanResult(
             scannedBarcode = response.scannedBarcode ?: barcode,
             found = response.found,
             product = product,
             detectedAllergens = detectedAllergens,
-            hasAllergens = response.hasAllergens ?: (detectedAllergens.isNotEmpty())
+            hasAllergens = response.hasAllergens ?: detectedAllergens.isNotEmpty()
         )
     }
 
     fun mapScanHistoryDtoToDomain(dto: ScanHistoryDto): ScanHistory {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
-        dateFormat.timeZone = TimeZone.getTimeZone("UTC")
         val createdAt = try {
             dateFormat.parse(dto.createdAt) ?: Date()
         } catch (e: Exception) {
+            Log.e(TAG, "Error parsing date: ${dto.createdAt}, ${e.message}")
             Date()
+        }
+        val product = dto.product?.let {
+            mapProductDtoToDomain(it)
+        } ?: run {
+            Log.w(TAG, "Product is null for scan ID: ${dto.id}")
+            null
         }
         return ScanHistory(
             id = dto.id.toString(),
@@ -174,7 +157,7 @@ object DataMapper {
             productId = dto.productId.toString(),
             isSafe = dto.isSafe,
             unsafeAllergens = dto.unsafeAllergens ?: emptyList(),
-            product = dto.product?.let { mapProductDtoToDomain(it) },
+            product = product,
             createdAt = createdAt
         )
     }
@@ -198,7 +181,6 @@ object DataMapper {
             )
             else -> null
         }
-
         return Product(
             id = dto.id.toString(),
             productName = dto.productName,
@@ -232,12 +214,6 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi SendOtpResponse ke OtpResponse domain model
-     *
-     * @param response SendOtpResponse dari API
-     * @return OtpResponse domain model
-     */
     fun mapSendOtpResponseToDomain(response: SendOtpResponse): Otp {
         return Otp(
             status = response.status,
@@ -249,12 +225,6 @@ object DataMapper {
         )
     }
 
-    /**
-     * Mengkonversi VerifyOtpResponse ke OtpResponse domain model
-     *
-     * @param response VerifyOtpResponse dari API
-     * @return OtpResponse domain model
-     */
     fun mapVerifyOtpResponseToDomain(response: VerifyOtpResponse): Otp {
         return Otp(
             status = response.status,
@@ -262,7 +232,11 @@ object DataMapper {
             email = response.data?.email ?: "",
             expiresIn = null,
             sendingMethod = null,
-            verifiedAt = response.data?.verifiedAt,
+            verifiedAt = response.data?.verifiedAt
         )
+    }
+
+    fun mapAllergensToNames(allergens: List<Allergen>): List<String> {
+        return allergens.map { it.name }
     }
 }

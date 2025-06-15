@@ -34,8 +34,9 @@ class ScanHistoryRepositoryImpl @Inject constructor(
             val request = ScanDtoRequest(
                 barcode = barcode,
                 productId = scanResult.product?.id?.toInt() ?: throw IllegalStateException("Product ID not available"),
-                isSafe = scanResult.hasAllergens?.not() ?: true,
-                userId = null
+                isSafe = !scanResult.hasAllergens,
+                userId = null,
+                unsafeAllergens = DataMapper.mapAllergensToNames(scanResult.detectedAllergens)
             )
             Log.d(TAG, "Request body: ${gson.toJson(request)}")
             val response = apiService.saveScan(request)
@@ -171,12 +172,11 @@ class ScanHistoryRepositoryImpl @Inject constructor(
         }
     }
 
-
     override suspend fun getScanCount(): Flow<NetworkResult<ScanCount>> = flow {
         emit(NetworkResult.Loading)
         try {
             Log.d(TAG, "Fetching scan count statistics")
-            val response = apiService.getTodayScanCount() // return Response<ScanCountResponse>
+            val response = apiService.getTodayScanCount()
 
             if (response.isSuccessful) {
                 val body = response.body()
@@ -184,7 +184,7 @@ class ScanHistoryRepositoryImpl @Inject constructor(
                     val dto = ScanCountDto(
                         totalCount = body.data.totalCount,
                         todayCount = body.data.todayCount,
-                        safeCount = 0, // fallback default
+                        safeCount = 0,
                         unsafeCount = 0
                     )
                     val domain = DataMapper.mapScanCountDtoToDomain(dto)
@@ -208,7 +208,6 @@ class ScanHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getProductSafetyStats(userId: String): Flow<NetworkResult<ProductSafetyStats>> = flow {
         emit(NetworkResult.Loading)
-
         try {
             val response = apiService.getProductSafetyStats(userId)
 
