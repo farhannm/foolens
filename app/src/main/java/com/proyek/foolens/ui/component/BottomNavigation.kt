@@ -22,6 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.proyek.foolens.R
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 
 enum class BottomNavItem(
     val route: String,
@@ -59,49 +62,60 @@ fun FoolensBottomNavigation(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(Color.Black)
+                .background(Color.Transparent)
                 .align(Alignment.TopCenter)
         )
 
         // Main navigation bar
-        Row(
+        Box (
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp),
+                clip = false
+            )
         ) {
-            // Home navigation item
-            BottomNavItem.values().forEach { navItem ->
-                if (navItem == BottomNavItem.Home) {
-                    NavItem(
-                        selected = currentRoute == navItem.route,
-                        iconResId = if (currentRoute == navItem.route)
-                            navItem.activeIconResId
-                        else
-                            navItem.inactiveIconResId,
-                        contentDescription = navItem.contentDescription,
-                        onClick = { onNavigate(navItem.route) }
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp))
+                    .background(Color.White)
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Home navigation item
+                BottomNavItem.values().forEach { navItem ->
+                    if (navItem == BottomNavItem.Home) {
+                        NavItem(
+                            selected = currentRoute == navItem.route,
+                            iconResId = if (currentRoute == navItem.route)
+                                navItem.activeIconResId
+                            else
+                                navItem.inactiveIconResId,
+                            contentDescription = navItem.contentDescription,
+                            onClick = { onNavigate(navItem.route) }
+                        )
+                    }
                 }
-            }
 
-            // Center camera button
-            CameraButton(onClick = onCameraClick)
+                // Center camera button
+                CameraButton(onClick = onCameraClick)
 
-            // Allergens navigation item
-            BottomNavItem.values().forEach { navItem ->
-                if (navItem == BottomNavItem.Allergens) {
-                    NavItem(
-                        selected = currentRoute == navItem.route,
-                        iconResId = if (currentRoute == navItem.route)
-                            navItem.activeIconResId
-                        else
-                            navItem.inactiveIconResId,
-                        contentDescription = navItem.contentDescription,
-                        onClick = { onNavigate(navItem.route) }
-                    )
+                // Allergens navigation item
+                BottomNavItem.values().forEach { navItem ->
+                    if (navItem == BottomNavItem.Allergens) {
+                        NavItem(
+                            selected = currentRoute == navItem.route,
+                            iconResId = if (currentRoute == navItem.route)
+                                navItem.activeIconResId
+                            else
+                                navItem.inactiveIconResId,
+                            contentDescription = navItem.contentDescription,
+                            onClick = { onNavigate(navItem.route) }
+                        )
+                    }
                 }
             }
         }
