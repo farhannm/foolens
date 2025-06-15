@@ -70,10 +70,10 @@ fun FoolensBottomNavigation(
         Box (
             modifier = Modifier
                 .fillMaxWidth()
-            .shadow(
+                .shadow(
                 elevation = 16.dp,
                 shape = RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp),
-                clip = false
+                clip = false,
             )
         ) {
             Row(
