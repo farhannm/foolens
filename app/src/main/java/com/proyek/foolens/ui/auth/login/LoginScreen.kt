@@ -210,6 +210,25 @@ fun LoginScreen(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Absolute.Right
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = Color.Gray,
+                        modifier = Modifier
+                            .clickable {
+                                onForgotPasswordClick()
+                            },
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Login button
@@ -243,7 +262,7 @@ fun LoginScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Belum memiliki akun? ",
+                        text = "Don't have account? ",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
@@ -255,18 +274,6 @@ fun LoginScreen(
                         color = OnBackground,
                         modifier = Modifier.clickable { onRegisterClick() }
                     )
-                    Text(
-                        text = "Lupa password?",
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .clickable {
-                                onForgotPasswordClick()
-                            },
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

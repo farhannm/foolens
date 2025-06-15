@@ -114,14 +114,16 @@ fun ScanDetailScreen(
         // Dialog Konfirmasi Hapus
         if (showDeleteDialog) {
             ConfirmationDialog(
-                title = "Hapus Riwayat",
-                message = "Apakah Anda yakin ingin menghapus riwayat ini?",
+                title = "Delete Scan History",
+                message = "Are you sure you want to delete this scan history?",
                 icon = painterResource(id = R.drawable.ilustration_sticker),
                 onDismiss = { showDeleteDialog = false },
                 onConfirm = {
                     viewModel.deleteScan(scanId)
                     showDeleteDialog = false
-                }
+                },
+                confirmText = "Delete",
+                dismissText = "Cancel"
             )
         }
 

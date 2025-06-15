@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -295,30 +296,38 @@ fun HomeContent(
             ) {
                 if (state.user?.profilePicture != null && state.user.profilePicture.isNotEmpty()) {
                     val fullImageUrl = ImageUtils.getFullImageUrl(state.user.profilePicture)
-                    android.util.Log.d(logTag, "Attempting to load profile image with URL: $fullImageUrl")
+                    android.util.Log.d(
+                        logTag,
+                        "Attempting to load profile image with URL: $fullImageUrl"
+                    )
                     AsyncImage(
-                        model = ImageUtils.createProfileImageRequest(
-                            context = context,
-                            imageUrl = state.user.profilePicture,
-                            placeholderId = R.drawable.profile_image
-                        ),
+                        model = "$fullImageUrl?t=${System.currentTimeMillis()}",
                         contentDescription = "Gambar Profil",
                         modifier = Modifier
                             .size(50.dp)
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop,
                         imageLoader = imageLoader,
+                        placeholder = painterResource(id = R.drawable.profile_image),
+                        error = painterResource(id = R.drawable.profile_image),
                         onError = {
-                            android.util.Log.e(logTag, "Failed to load profile image: ${state.user.profilePicture}, Error: ${it.result.throwable?.message}")
+                            android.util.Log.e(
+                                logTag,
+                                "Failed to load profile image: $fullImageUrl, Error: ${it.result.throwable?.message}"
+                            )
                         },
                         onSuccess = {
-                            android.util.Log.d(logTag, "Profile image loaded successfully: ${state.user.profilePicture}")
-                        },
-                        placeholder = painterResource(id = R.drawable.profile_image),
-                        error = painterResource(id = R.drawable.profile_image)
+                            android.util.Log.d(
+                                logTag,
+                                "Profile image loaded successfully: $fullImageUrl"
+                            )
+                        }
                     )
                 } else {
-                    android.util.Log.w(logTag, "Profile picture is null or empty: profilePicture=${state.user?.profilePicture}")
+                    android.util.Log.w(
+                        logTag,
+                        "Profile picture is null or empty: profilePicture=${state.user?.profilePicture}"
+                    )
                     Image(
                         painter = painterResource(id = R.drawable.profile_image),
                         contentDescription = "Gambar Profil",
@@ -556,6 +565,7 @@ fun TotalScannedProductCard(
                             .align(Alignment.Start)
                             .padding(bottom = 8.dp)
                     )
+                    val unsafePercentage = 100.0 - safePercentage
                     Text(
                         text = "$unsafeCount product",
                         style = MaterialTheme.typography.bodySmall.copy(
@@ -603,7 +613,7 @@ fun HistoryScan(
             .padding(vertical = 8.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFFFFFFF)
         )
@@ -639,8 +649,7 @@ fun HistoryScan(
                 )
             }
             Icon(
-                painter = painterResource(id = R.drawable.ic_chevron_right),
-                modifier = Modifier.size(16.dp),
+                imageVector = Icons.Filled.KeyboardArrowRight,
                 contentDescription = "Next",
                 tint = Color.Black
             )

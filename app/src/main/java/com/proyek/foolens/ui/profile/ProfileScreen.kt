@@ -1,48 +1,20 @@
 package com.proyek.foolens.ui.profile
+
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,8 +29,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.proyek.foolens.R
-import com.proyek.foolens.ui.component.ConfirmationDialog
 import com.proyek.foolens.data.util.ImageUtils
+import com.proyek.foolens.ui.component.ConfirmationDialog
+import com.proyek.foolens.ui.component.FullScreenImageDialog
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -76,7 +49,10 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    // Muat ulang data profil saat halaman ditampilkan
+    var showImageDialog by remember { mutableStateOf(false) }
+    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+
+    // Reload profile
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
     }
@@ -90,34 +66,6 @@ fun ProfileScreen(
 
     // Track if logout dialog is showing
     var showLogoutDialog by remember { mutableStateOf(false) }
-
-    // Image selection
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                val file = File(context.cacheDir, "profile_image_${System.currentTimeMillis()}.jpg")
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val outputStream = FileOutputStream(file)
-                inputStream?.use { input ->
-                    outputStream.use { output ->
-                        val buffer = ByteArray(1024) // Buffer sebesar 1KB
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                        }
-                        output.flush()
-                    }
-                }
-                viewModel.setSelectedImageUri(uri, file)
-            } catch (e: Exception) {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Gagal memilih gambar: ${e.message}")
-                }
-            }
-        }
-    }
 
     val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
 
@@ -145,10 +93,13 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(
-                    text = "Profile",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center) },
+                title = {
+                    Text(
+                        text = "Profile",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -192,29 +143,42 @@ fun ProfileScreen(
                             .padding(vertical = 24.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Profile picture on the left
-                        if (!state.profile?.profilePicture.isNullOrEmpty()) {
-                            AsyncImage(
-                                model = "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}",
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop,
-                                imageLoader = imageLoader
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(id = R.drawable.profile_image),
-                                contentDescription = "Default Profile Image",
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
+                        // Profile picture
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    if (!state.profile?.profilePicture.isNullOrEmpty()) {
+                                        selectedImageUrl =
+                                            "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}"
+                                        showImageDialog = true
+                                    }
+                                }
+                        ) {
+                            if (!state.profile?.profilePicture.isNullOrEmpty()) {
+                                AsyncImage(
+                                    model = "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}",
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    imageLoader = imageLoader
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.profile_image),
+                                    contentDescription = "Default Profile Image",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
 
-                        // Name and email on the right
+                        // Name and email
                         Column(
                             modifier = Modifier
                                 .padding(start = 16.dp)
@@ -260,7 +224,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Logout button at bottom-left
+                    // Logout button
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -293,11 +257,19 @@ fun ProfileScreen(
         }
     }
 
+    // View image dialog
+    if (showImageDialog && selectedImageUrl != null) {
+        FullScreenImageDialog(
+            imageUrl = selectedImageUrl,
+            onDismiss = { showImageDialog = false }
+        )
+    }
+
     // Logout confirmation dialog
     if (showLogoutDialog) {
         ConfirmationDialog(
-            title = "Keluar",
-            message = "Apakah Anda yakin untuk keluar dari akun?",
+            title = "Logout",
+            message = "Are you sure you want to logout from this account?",
             icon = painterResource(id = R.drawable.ilustration_sticker),
             onDismiss = { showLogoutDialog = false },
             onConfirm = {

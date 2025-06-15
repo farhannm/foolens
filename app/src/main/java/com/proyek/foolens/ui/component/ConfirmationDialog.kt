@@ -41,8 +41,8 @@ fun ConfirmationDialog(
     icon: Painter = painterResource(id = R.drawable.ilustration_sticker),
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    confirmText: String = "Hapus",
-    dismissText: String = "Kembali"
+    confirmText: String = "Logout",
+    dismissText: String = "Cancel"
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -86,7 +86,7 @@ fun ConfirmationDialog(
                         text = title,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F4D11),  // Dark green color from images
+                        color = Color(0xFF0F4D11),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 16.dp)
                     )

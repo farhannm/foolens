@@ -3,7 +3,8 @@ package com.proyek.foolens.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.NetworkResult
-import com.proyek.foolens.domain.usecases.AuthUseCase
+import com.proyek.foolens.domain.model.User
+import com.proyek.foolens.domain.usecases.ProfileUseCase
 import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
 import com.proyek.foolens.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,14 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val authUseCase: AuthUseCase,
     private val scanHistoryUseCase: ScanHistoryUseCase,
-    val tokenManager: TokenManager // Changed from private to public
+    private val profileUseCase: ProfileUseCase,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -33,22 +33,29 @@ class HomeViewModel @Inject constructor(
     fun loadUserData() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            authUseCase.getCurrentUser().collect { result ->
+            profileUseCase.getProfile().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
-                        val user = result.data
-                        android.util.Log.d("HomeViewModel", "User data loaded: name=${user.name}, email=${user.email}, profilePicture=${user.profilePicture}")
+                        val profile = result.data
+                        android.util.Log.d("HomeViewModel", "Profile data loaded: name=${profile.name}, email=${profile.email}, profilePicture=${profile.profilePicture}")
                         _state.update {
                             it.copy(
-                                user = user,
+                                user = User(
+                                    id = profile.id.toString(),
+                                    name = profile.name,
+                                    email = profile.email,
+                                    phone = profile.phoneNumber ?: "",
+                                    profilePicture = profile.profilePicture,
+                                    token = tokenManager.getToken() ?: ""
+                                ),
                                 isLoading = false,
                                 errorMessage = null
                             )
                         }
-                        loadProductSafetyStats(user.id.toString())
+                        loadProductSafetyStats(profile.id.toString())
                     }
                     is NetworkResult.Error -> {
-                        android.util.Log.e("HomeViewModel", "Failed to load user data: ${result.errorMessage}")
+                        android.util.Log.e("HomeViewModel", "Failed to load profile data: ${result.errorMessage}")
                         _state.update {
                             it.copy(
                                 isLoading = false,
@@ -126,38 +133,5 @@ class HomeViewModel @Inject constructor(
     fun refreshData() {
         loadUserData()
         loadScanCountData()
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            authUseCase.logout().collect { result ->
-                when (result) {
-                    is NetworkResult.Success -> {
-                        tokenManager.clearToken()
-                        _state.update {
-                            it.copy(
-                                user = null,
-                                isLoading = false,
-                                errorMessage = null
-                            )
-                        }
-                    }
-                    is NetworkResult.Error -> {
-                        tokenManager.clearToken()
-                        _state.update {
-                            it.copy(
-                                user = null,
-                                isLoading = false,
-                                errorMessage = "Logout failed: ${result.errorMessage}"
-                            )
-                        }
-                    }
-                    is NetworkResult.Loading -> {
-                        _state.update { it.copy(isLoading = true) }
-                    }
-                }
-            }
-        }
     }
 }

@@ -18,8 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,22 +25,20 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +46,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.proyek.foolens.R
 import com.proyek.foolens.data.util.ImageUtils
+import com.proyek.foolens.ui.component.FullScreenImageDialog
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -74,7 +70,10 @@ fun EditProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    // Muat ulang data profil saat halaman ditampilkan
+    var showImageDialog by remember { mutableStateOf(false) }
+    var selectedImageUrl by remember { mutableStateOf<Any?>(null) }
+
+    // Reload Profile
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
     }
@@ -146,7 +145,6 @@ fun EditProfileScreen(
                     )
                 }
 
-                // "Scan" title, centered in the header
                 Text(
                     text = "Edit Profile",
                     modifier = Modifier.fillMaxWidth(),
@@ -175,43 +173,59 @@ fun EditProfileScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp)
                 ) {
-                    // Profile header with image
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 32.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Profile Image
                         Box {
-                            if (state.selectedImageUri != null) {
-                                AsyncImage(
-                                    model = state.selectedImageUri,
-                                    contentDescription = "Selected Profile Picture",
-                                    modifier = Modifier
-                                        .size(170.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop,
-                                    imageLoader = imageLoader
-                                )
-                            } else if (!state.profile?.profilePicture.isNullOrEmpty()) {
-                                AsyncImage(
-                                    model = "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}",
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier
-                                        .size(170.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop,
-                                    imageLoader = imageLoader
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.profile_image),
-                                    contentDescription = "Default Profile Image",
-                                    modifier = Modifier
-                                        .size(170.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .size(170.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        if (state.selectedImageUri != null) {
+                                            selectedImageUrl = state.selectedImageUri
+                                            showImageDialog = true
+                                        } else if (!state.profile?.profilePicture.isNullOrEmpty()) {
+                                            selectedImageUrl =
+                                                "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}"
+                                            showImageDialog = true
+                                        }
+                                    }
+                            ) {
+                                if (state.selectedImageUri != null) {
+                                    AsyncImage(
+                                        model = state.selectedImageUri,
+                                        contentDescription = "Selected Profile Picture",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop,
+                                        imageLoader = imageLoader
+                                    )
+                                } else if (!state.profile?.profilePicture.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = "${ImageUtils.getFullImageUrl(state.profile?.profilePicture)}?t=${System.currentTimeMillis()}",
+                                        contentDescription = "Profile Picture",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop,
+                                        imageLoader = imageLoader
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.profile_image),
+                                        contentDescription = "Default Profile Image",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                             }
 
                             // Edit icon overlay
@@ -300,5 +314,13 @@ fun EditProfileScreen(
                 }
             }
         }
+    }
+
+    // View Profile Dialog
+    if (showImageDialog && selectedImageUrl != null) {
+        FullScreenImageDialog(
+            imageUrl = selectedImageUrl,
+            onDismiss = { showImageDialog = false }
+        )
     }
 }
