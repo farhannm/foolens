@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,10 +64,10 @@ import com.proyek.foolens.ui.theme.Typography
 import com.proyek.foolens.data.util.ImageUtils
 import com.proyek.foolens.ui.history.ScanHistoryState
 import com.proyek.foolens.ui.history.ScanHistoryViewModel
-import com.proyek.foolens.util.TokenManager
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,6 +90,7 @@ fun HomeScreen(
 
     // Get current date and time
     val currentDate = remember { LocalDate.now() }
+    val currentTime = remember { LocalTime.now() }
     val formattedDate = remember {
         val dayOfWeek = when (currentDate.dayOfWeek) {
             DayOfWeek.MONDAY -> "Monday"
@@ -118,6 +118,15 @@ fun HomeScreen(
             else -> ""
         }
         "$dayOfWeek, $month ${currentDate.dayOfMonth}"
+    }
+
+    val greeting = remember(currentTime) {
+        when {
+            currentTime.hour < 12 -> "Morning"
+            currentTime.hour < 17 -> "Afternoon"
+            currentTime.hour < 21 -> "Evening"
+            else -> "Night"
+        }
     }
 
     LaunchedEffect(state.errorMessage, historyState.error) {
@@ -154,6 +163,7 @@ fun HomeScreen(
                         state = state,
                         historyState = historyState,
                         formattedDate = formattedDate,
+                        greeting = greeting,
                         onRefresh = { viewModel.refreshData() },
                         onProfileClick = onProfileClick,
                         onHistoryClick = onHistoryClick,
@@ -216,6 +226,7 @@ fun HomeContent(
     state: HomeState,
     historyState: ScanHistoryState,
     formattedDate: String,
+    greeting: String,
     onRefresh: () -> Unit,
     onProfileClick: () -> Unit,
     onHistoryClick: () -> Unit,
@@ -223,7 +234,7 @@ fun HomeContent(
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) } // Pass token to ImageLoader
+    val imageLoader = remember { ImageUtils.createProfileImageLoader(context) }
     val logTag = "HomeContent"
 
     Column(
@@ -241,14 +252,14 @@ fun HomeContent(
         ) {
             Text(
                 text = formattedDate,
-                style = Typography.bodySmall,
-                color = Color.Gray
+                style = Typography.bodyMedium,
+                color = Color(0xFF062207)
             )
             IconButton(onClick = onRefresh) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Muat Ulang",
-                    tint = Color.Gray
+                    tint = Color(0xFF062207)
                 )
             }
         }
@@ -262,7 +273,7 @@ fun HomeContent(
         ) {
             Column {
                 Text(
-                    text = "Hallo,",
+                    text = "$greeting,",
                     style = Typography.headlineSmall,
                     fontWeight = FontWeight.Normal
                 )
@@ -274,7 +285,7 @@ fun HomeContent(
                 Text(
                     text = state.user?.email ?: "Tidak ada email",
                     style = Typography.bodyMedium,
-                    color = Color.Gray
+                    color = Color(0xFF062207)
                 )
             }
 
@@ -304,7 +315,7 @@ fun HomeContent(
                             android.util.Log.d(logTag, "Profile image loaded successfully: ${state.user.profilePicture}")
                         },
                         placeholder = painterResource(id = R.drawable.profile_image),
-                        error = painterResource(id = R.drawable.profile_image) // Fallback image
+                        error = painterResource(id = R.drawable.profile_image)
                     )
                 } else {
                     android.util.Log.w(logTag, "Profile picture is null or empty: profilePicture=${state.user?.profilePicture}")
@@ -381,7 +392,8 @@ fun HomeContent(
                     historyState.scanHistories.take(3).forEach { scanHistory ->
                         HistoryScan(
                             name = scanHistory.product?.productName ?: "Produk Tidak Dikenal",
-                            allergens = scanHistory.unsafeAllergens?.joinToString() ?: "Tidak Ada",
+                            allergens = scanHistory.unsafeAllergens?.joinToString() ?: "",
+                            isSafe = scanHistory.isSafe,
                             onClick = { onNavigateToDetail(scanHistory.id) }
                         )
                     }
@@ -407,8 +419,9 @@ fun TotalScannedProductCard(
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
-        )
+            containerColor = Color(0xFFFFFFFF)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -419,7 +432,7 @@ fun TotalScannedProductCard(
             Text(
                 text = "Total Scanned Product",
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                color = Color(0xFF666666),
+                color = Color(0xFF062207),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
@@ -443,7 +456,7 @@ fun TotalScannedProductCard(
             }
 
             Text(
-                text = "Lest Compare!",
+                text = "Let's Compare!",
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 color = Color(0xFF062207),
                 modifier = Modifier
@@ -458,13 +471,13 @@ fun TotalScannedProductCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(12.dp)
-                    .background(Color(0xFFE0E0E0), RoundedCornerShape(100.dp))
+                    .background(Color.Red, RoundedCornerShape(100.dp))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .background(Color(0xFF4169E1), RoundedCornerShape(100.dp))
+                        .background(Color.Blue, RoundedCornerShape(100.dp))
                 )
             }
 
@@ -494,7 +507,7 @@ fun TotalScannedProductCard(
                         modifier = Modifier
                             .width(24.dp)
                             .height(2.dp)
-                            .background(Color(0xFF4169E1))
+                            .background(Color.Blue)
                             .align(Alignment.Start)
                             .padding(bottom = 8.dp)
                     )
@@ -502,7 +515,7 @@ fun TotalScannedProductCard(
                         text = "$safeCount product",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 16.sp,
-                            color = Color(0xFFAAAAAA)
+                            color = Color(0xFF454545)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -516,7 +529,7 @@ fun TotalScannedProductCard(
                     modifier = Modifier
                         .width(1.dp)
                         .height(64.dp)
-                        .background(Color(0xFFE0E0E0))
+                        .background(Color(0xFF454545))
                 )
 
                 // Unsafe Column
@@ -539,16 +552,15 @@ fun TotalScannedProductCard(
                         modifier = Modifier
                             .width(24.dp)
                             .height(1.dp)
-                            .background(Color(0xFFE0E0E0))
+                            .background(Color(0xFFE16941))
                             .align(Alignment.Start)
                             .padding(bottom = 8.dp)
                     )
-                    val unsafePercentage = 100.0 - safePercentage
                     Text(
                         text = "$unsafeCount product",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 16.sp,
-                            color = Color(0xFFAAAAAA)
+                            color = Color(0xFF454545)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -581,6 +593,7 @@ fun TotalScannedProductCard(
 fun HistoryScan(
     name: String,
     allergens: String,
+    isSafe: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -613,15 +626,16 @@ fun HistoryScan(
                     color = Color.Black
                 )
                 Text(
-                    text = "Risky Ingredients",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = if (isSafe) "No Risky Ingredients" else "Risky Ingredients",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.Black
                 )
                 Text(
-                    text = allergens,
-                    style = MaterialTheme.typography.bodySmall,
+                    text = if (isSafe) "is Safe!" else allergens,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontStyle = FontStyle.Italic,
-                    color = Color.Blue
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSafe) Color(0xFF53D030) else Color.Red
                 )
             }
             Icon(

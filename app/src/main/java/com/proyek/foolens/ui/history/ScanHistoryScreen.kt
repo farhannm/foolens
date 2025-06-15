@@ -181,6 +181,7 @@ fun HistoryScan(
                         text = "is Safe!",
                         style = MaterialTheme.typography.bodyMedium,
                         fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
                         color = Color(0xFF53D030)
                     )
                 } else {
@@ -188,6 +189,7 @@ fun HistoryScan(
                         text = allergens.joinToString(),
                         style = MaterialTheme.typography.bodyMedium,
                         fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
                         color = Color.Red
                     )
                 }

@@ -57,7 +57,7 @@ fun FoolensTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicLightColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
+        darkTheme -> LightColorScheme
         else -> LightColorScheme
     }
     val view = LocalView.current
