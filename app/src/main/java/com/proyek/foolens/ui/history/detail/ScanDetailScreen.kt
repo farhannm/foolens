@@ -36,7 +36,7 @@ import com.proyek.foolens.ui.component.ConfirmationDialog
 @Composable
 fun ScanDetailScreen(
     scanId: String,
-    onBack: () -> Unit,
+    onBack: (Boolean) -> Unit,
     viewModel: ScanDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -58,7 +58,7 @@ fun ScanDetailScreen(
     LaunchedEffect(state.deleteSuccess) {
         if (state.deleteSuccess) {
             Log.d("ScanDetailScreen", "Scan deleted successfully, navigating back")
-            onBack()
+            onBack(true)
         }
     }
 
@@ -74,7 +74,7 @@ fun ScanDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             IconButton(
-                onClick = onBack,
+                onClick = { onBack(false) },
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(40.dp)

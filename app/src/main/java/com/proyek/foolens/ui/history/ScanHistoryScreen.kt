@@ -68,7 +68,6 @@ fun ScanHistoryScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Header ala ScanDetailScreen
         Box(
             modifier = Modifier
                 .fillMaxWidth()
