@@ -7,7 +7,8 @@ data class ScanDtoRequest(
     @SerializedName("barcode") val barcode: String,
     @SerializedName("product_id") val productId: Int,
     @SerializedName("is_safe") val isSafe: Boolean,
-    @SerializedName("user_id") val userId: Int? = null
+    @SerializedName("user_id") val userId: Int? = null,
+    @SerializedName("unsafe_allergens") val unsafeAllergens: List<String>? = null
 )
 
 // DTO untuk satu entitas scan history

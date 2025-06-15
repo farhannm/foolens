@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.proyek.foolens.data.util.ImageUtils
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.usecases.ProductUseCase
 import com.proyek.foolens.domain.usecases.ScanHistoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +37,7 @@ class ScanDetailViewModel @Inject constructor(
                         is NetworkResult.Success -> {
                             val scanHistory = historyResult.data.find { it.id == scanId }
                             if (scanHistory != null) {
-                                // Adjust imageUrl dari scanHistory.product
+                                Log.d(TAG, "ScanHistory loaded: isSafe=${scanHistory.isSafe}, unsafeAllergens=${scanHistory.unsafeAllergens}")
                                 val adjustedScanProduct = scanHistory.product?.let { product ->
                                     val adjustedImageUrl = ImageUtils.getFullImageUrl(product.imageUrl)
                                     Log.d(TAG, "Adjusted scanHistory product imageUrl: $adjustedImageUrl")
@@ -50,12 +51,12 @@ class ScanDetailViewModel @Inject constructor(
                                         when (productResult) {
                                             is NetworkResult.Success -> {
                                                 val productScanResult = productResult.data
+                                                Log.d(TAG, "ProductScanResult: hasAllergens=${productScanResult.hasAllergens}, detectedAllergens=${productScanResult.detectedAllergens}")
                                                 val product = productScanResult.product?.let { prod ->
                                                     val adjustedImageUrl = ImageUtils.getFullImageUrl(prod.imageUrl)
                                                     Log.d(TAG, "Adjusted product imageUrl: $adjustedImageUrl")
                                                     prod.copy(imageUrl = adjustedImageUrl)
                                                 }
-                                                Log.d(TAG, "Product loaded - imageUrl: ${product?.imageUrl}")
                                                 _state.update {
                                                     it.copy(
                                                         isLoading = false,
@@ -64,10 +65,11 @@ class ScanDetailViewModel @Inject constructor(
                                                         scannedBarcode = productScanResult.scannedBarcode,
                                                         detectedAllergens = productScanResult.detectedAllergens,
                                                         unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
-                                                        isSafe = !productScanResult.hasAllergens,
+                                                        isSafe = adjustedScanHistory.isSafe && !productScanResult.hasAllergens, // Prioritaskan scanHistory.isSafe
                                                         errorMessage = null
                                                     )
                                                 }
+                                                Log.d(TAG, "Final state: isSafe=${state.value.isSafe}, unsafeAllergens=${state.value.unsafeAllergens}, detectedAllergens=${state.value.detectedAllergens}")
                                             }
                                             is NetworkResult.Error -> {
                                                 Log.e(TAG, "Error loading product: ${productResult.errorMessage}")
@@ -77,12 +79,15 @@ class ScanDetailViewModel @Inject constructor(
                                                         scanHistory = adjustedScanHistory,
                                                         product = adjustedScanHistory.product,
                                                         scannedBarcode = barcode,
-                                                        detectedAllergens = emptyList(),
+                                                        detectedAllergens = (adjustedScanHistory.unsafeAllergens ?: emptyList()).map {
+                                                            Allergen(id = 0, name = it, severityLevel = 0, description = null, alternativeNames = null)
+                                                        },
                                                         unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
-                                                        isSafe = adjustedScanHistory.isSafe,
-                                                        errorMessage = "Gagal mengambil data alergen: ${productResult.errorMessage}"
+                                                        isSafe = adjustedScanHistory.isSafe, // Gunakan scanHistory.isSafe sebagai fallback
+                                                        errorMessage = "Failed to fetch allergen data: ${productResult.errorMessage}"
                                                     )
                                                 }
+                                                Log.d(TAG, "Final state (error): isSafe=${state.value.isSafe}, unsafeAllergens=${state.value.unsafeAllergens}")
                                             }
                                             is NetworkResult.Loading -> {}
                                         }
@@ -95,12 +100,15 @@ class ScanDetailViewModel @Inject constructor(
                                             scanHistory = adjustedScanHistory,
                                             product = adjustedScanHistory.product,
                                             scannedBarcode = null,
-                                            detectedAllergens = emptyList(),
+                                            detectedAllergens = (adjustedScanHistory.unsafeAllergens ?: emptyList()).map {
+                                                Allergen(id = 0, name = it, severityLevel = 0, description = null, alternativeNames = null)
+                                            },
                                             unsafeAllergens = adjustedScanHistory.unsafeAllergens ?: emptyList(),
-                                            isSafe = adjustedScanHistory.isSafe,
+                                            isSafe = adjustedScanHistory.isSafe, // Gunakan scanHistory.isSafe
                                             errorMessage = if (adjustedScanHistory.product == null) "Data produk tidak tersedia" else null
                                         )
                                     }
+                                    Log.d(TAG, "Final state (no barcode): isSafe=${state.value.isSafe}, unsafeAllergens=${state.value.unsafeAllergens}")
                                 }
                             } else {
                                 Log.e(TAG, "Scan history not found for scanId: $scanId")
@@ -117,7 +125,7 @@ class ScanDetailViewModel @Inject constructor(
                             _state.update {
                                 it.copy(
                                     isLoading = false,
-                                    errorMessage = historyResult.errorMessage ?: "Gagal mengambil detail"
+                                    errorMessage = historyResult.errorMessage ?: "Failed to fetch details"
                                 )
                             }
                         }
@@ -135,6 +143,7 @@ class ScanDetailViewModel @Inject constructor(
             }
         }
     }
+
     fun deleteScan(scanId: String) {
         viewModelScope.launch {
             scanHistoryUseCase.deleteScan(scanId).collect { result ->
@@ -145,7 +154,7 @@ class ScanDetailViewModel @Inject constructor(
                     is NetworkResult.Error -> {
                         _state.update {
                             it.copy(
-                                errorMessage = result.errorMessage ?: "Gagal menghapus riwayat"
+                                errorMessage = result.errorMessage ?: "Failed to delete scan"
                             )
                         }
                     }

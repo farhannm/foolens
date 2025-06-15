@@ -3,7 +3,9 @@ package com.proyek.foolens.ui.scan
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.proyek.foolens.data.util.DataMapper
 import com.proyek.foolens.data.util.NetworkResult
+import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.domain.model.Product
 import com.proyek.foolens.domain.model.ProductScanResult
 import com.proyek.foolens.domain.usecases.AllergenUseCase
@@ -196,7 +198,7 @@ class ScanViewModel @Inject constructor(
                     "crab" to Triple("Kepiting", 3, "Crab")
                 )
 
-                val detectedAllergens = mutableListOf<com.proyek.foolens.domain.model.Allergen>()
+                val detectedAllergens = mutableListOf<Allergen>()
                 val lowerCaseText = ocrText.lowercase()
 
                 offlineAllergens.forEach { (keyword, allergenInfo) ->
@@ -205,7 +207,7 @@ class ScanViewModel @Inject constructor(
                         val (name, severity, alternativeNames) = allergenInfo
                         if (detectedAllergens.none { it.name == name }) {
                             detectedAllergens.add(
-                                com.proyek.foolens.domain.model.Allergen(
+                                Allergen(
                                     id = detectedAllergens.size + 1,
                                     name = name,
                                     severityLevel = severity,
@@ -279,8 +281,8 @@ class ScanViewModel @Inject constructor(
                                     product = scanResult.product,
                                     scannedBarcode = scanResult.scannedBarcode,
                                     productFound = scanResult.found,
-                                    detectedAllergens = scanResult.detectedAllergens ?: emptyList(),
-                                    hasAllergens = scanResult.hasAllergens ?: false,
+                                    detectedAllergens = scanResult.detectedAllergens,
+                                    hasAllergens = scanResult.hasAllergens,
                                     showProductFoundDialog = scanResult.found,
                                     showProductNotFoundDialog = !scanResult.found,
                                     errorMessage = null,
@@ -331,8 +333,8 @@ class ScanViewModel @Inject constructor(
                             product = scanResult.product,
                             scannedBarcode = scanResult.scannedBarcode,
                             productFound = scanResult.found,
-                            detectedAllergens = scanResult.detectedAllergens ?: emptyList(),
-                            hasAllergens = scanResult.hasAllergens ?: false,
+                            detectedAllergens = scanResult.detectedAllergens,
+                            hasAllergens = scanResult.hasAllergens,
                             showProductFoundDialog = scanResult.found,
                             showProductNotFoundDialog = !scanResult.found,
                             errorMessage = null,
@@ -340,7 +342,7 @@ class ScanViewModel @Inject constructor(
                             scanHistoryId = scanHistory.id
                         )
                     }
-                    Log.d(TAG, "Scan history saved successfully: ${scanHistory.id}")
+                    Log.d(TAG, "Scan history saved successfully: ${scanHistory.id}, unsafe_allergens: ${scanResult.detectedAllergens.map { it.name }}")
                 }
                 is NetworkResult.Error -> {
                     Log.e(TAG, "Error menyimpan hasil scan: ${saveResult.errorMessage}")

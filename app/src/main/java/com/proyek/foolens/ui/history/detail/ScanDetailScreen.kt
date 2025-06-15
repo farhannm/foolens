@@ -32,7 +32,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.proyek.foolens.R
 import com.proyek.foolens.ui.component.ConfirmationDialog
-import com.proyek.foolens.ui.scan.SeverityIndicator
 
 @Composable
 fun ScanDetailScreen(
@@ -52,10 +51,14 @@ fun ScanDetailScreen(
         Log.d("ScanDetailScreen", "Current imageUrl: ${state.product?.imageUrl}")
     }
 
+    LaunchedEffect(state.isSafe) {
+        Log.d("ScanDetailScreen", "isSafe status: ${state.isSafe}")
+    }
+
     LaunchedEffect(state.deleteSuccess) {
         if (state.deleteSuccess) {
             Log.d("ScanDetailScreen", "Scan deleted successfully, navigating back")
-            onBack() // Navigasi kembali setelah penghapusan berhasil
+            onBack()
         }
     }
 
@@ -211,6 +214,7 @@ fun ScanDetailScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Alergen Terdeteksi
                     @Composable
                     fun AllergenChip(allergenName: String, chipColor: Color) {
                         Surface(
@@ -228,16 +232,25 @@ fun ScanDetailScreen(
                         }
                     }
 
-                    // Tampilkan alergen terdeteksi sebagai chip jika produk tidak aman
-                    if (!state.isSafe && state.detectedAllergens.isNotEmpty()) {
-                        Column(
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            state.detectedAllergens.forEachIndexed { index, allergen ->
-                                AllergenChip(
-                                    allergenName = allergen.name,
-                                    chipColor = Color(0xFFF0F0F0)
-                                )
+                    if (!state.isSafe) {
+                        val allAllergens = (state.unsafeAllergens + state.detectedAllergens.map { it.name }).toSet().toList()
+                        if (allAllergens.isNotEmpty()) {
+                            Text(
+                                text = "Alergen Terdeteksi",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Column(
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                allAllergens.forEach { allergenName ->
+                                    AllergenChip(
+                                        allergenName = allergenName,
+                                        chipColor = Color(0xFFF0F0F0)
+                                    )
+                                }
                             }
                         }
                     }
@@ -245,10 +258,8 @@ fun ScanDetailScreen(
                     Divider(
                         color = Color.Gray,
                         thickness = 0.5.dp,
-                        modifier = Modifier.padding(vertical = 4.dp)
+                        modifier = Modifier.padding(vertical = 16.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Nama Produk
                     Text(
@@ -320,69 +331,6 @@ fun ScanDetailScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // Daftar Alergen Tidak Aman
-                    if (!state.isSafe && state.unsafeAllergens.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            state.unsafeAllergens.forEach { allergen ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "•",
-                                        fontSize = 14.sp,
-                                        color = Color.Black,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = allergen,
-                                        fontSize = 14.sp,
-                                        color = Color.Black
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Daftar Alergen Terdeteksi
-                    if (!state.isSafe && state.detectedAllergens.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            state.detectedAllergens.forEach { allergen ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "•",
-                                        fontSize = 14.sp,
-                                        color = Color.Black,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = allergen.name,
-                                        fontSize = 14.sp,
-                                        color = Color.Black
-                                    )
-                                    if (allergen.severityLevel > 0) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                        SeverityIndicator(severityLevel = allergen.severityLevel)
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
