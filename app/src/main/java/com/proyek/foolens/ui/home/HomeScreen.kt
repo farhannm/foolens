@@ -613,7 +613,7 @@ fun HistoryScan(
             .padding(vertical = 8.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFFFFFFF)
         )
@@ -649,7 +649,8 @@ fun HistoryScan(
                 )
             }
             Icon(
-                imageVector = Icons.Filled.KeyboardArrowRight,
+                painter = painterResource(id = R.drawable.ic_chevron_right),
+                modifier = Modifier.size(16.dp),
                 contentDescription = "Next",
                 tint = Color.Black
             )

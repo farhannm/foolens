@@ -120,8 +120,10 @@ fun AllergenDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            painter = painterResource(id = R.drawable.ic_chevron_left),
+                            modifier = Modifier.size(16.dp),
+                            contentDescription = "Next",
+                            tint = Color.Black
                         )
                     }
                 },

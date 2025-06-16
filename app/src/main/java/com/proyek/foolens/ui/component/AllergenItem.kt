@@ -66,7 +66,6 @@ fun AllergenItem(
                 .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Gunakan nama alergen
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -78,11 +77,10 @@ fun AllergenItem(
                 )
             }
 
-            // Ikon panah ke kanan
             Icon(
                 painter = painterResource(id = R.drawable.ic_chevron_right),
                 contentDescription = "Lihat detail",
-                tint = Color.Gray,
+                tint = Color.Black,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -151,7 +149,7 @@ fun AllergenItemExpandable(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_chevron_down),
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = Color.Gray,
+                    tint = Color.Black,
                     modifier = Modifier
                         .size(16.dp)
                         .rotate(iconRotation)

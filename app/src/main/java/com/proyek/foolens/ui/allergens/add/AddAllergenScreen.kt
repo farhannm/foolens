@@ -19,12 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.proyek.foolens.R
 import com.proyek.foolens.domain.model.Allergen
 import com.proyek.foolens.ui.component.SeveritySelectionBottomSheet
 import kotlinx.coroutines.Job
@@ -64,8 +66,10 @@ fun AddAllergenScreen(
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            painter = painterResource(id = R.drawable.ic_chevron_left),
+                            modifier = Modifier.size(16.dp),
+                            contentDescription = "Next",
+                            tint = Color.Black
                         )
                     }
                 },
