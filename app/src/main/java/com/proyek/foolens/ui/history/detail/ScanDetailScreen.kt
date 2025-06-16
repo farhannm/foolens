@@ -211,10 +211,10 @@ fun ScanDetailScreen(
                         },
                         fontSize = 14.sp,
                         color = Color(0xFF757575),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Alergen Terdeteksi
                     @Composable
@@ -222,7 +222,7 @@ fun ScanDetailScreen(
                         Surface(
                             shape = RoundedCornerShape(24.dp),
                             color = chipColor,
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = allergenName,
@@ -237,15 +237,8 @@ fun ScanDetailScreen(
                     if (!state.isSafe) {
                         val allAllergens = (state.unsafeAllergens + state.detectedAllergens.map { it.name }).toSet().toList()
                         if (allAllergens.isNotEmpty()) {
-                            Text(
-                                text = "Alergen Terdeteksi",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            Column(
-                                modifier = Modifier.padding(top = 4.dp)
+                            Row(
+                                modifier = Modifier.padding(top = 2.dp)
                             ) {
                                 allAllergens.forEach { allergenName ->
                                     AllergenChip(

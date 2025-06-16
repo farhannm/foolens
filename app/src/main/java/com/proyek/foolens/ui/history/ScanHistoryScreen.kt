@@ -177,11 +177,19 @@ fun HistoryScan(
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.Black
                 )
-                Text(
-                    text = "Risky Ingredients",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black
-                )
+                if (allergens.isEmpty()) {
+                    Text(
+                        text = "No Risky Ingredients",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black
+                    )
+                } else {
+                    Text(
+                        text = "Risky Ingredients",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black
+                    )
+                }
                 if (allergens.isEmpty()) {
                     Text(
                         text = "is Safe!",
