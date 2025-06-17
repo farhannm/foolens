@@ -197,14 +197,14 @@ fun ScanDetailScreen(
 
                     // Status Keamanan Produk
                     Text(
-                        text = if (state.isSafe) "is Safe!" else "Whoops!",
+                        text = if (state.isSafe == true) "is Safe!" else "Whoops!",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (state.isSafe) Color.Black else Color.Black,
+                        color = if (state.isSafe == true) Color.Green else Color.Red,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = if (state.isSafe) {
+                        text = if (state.isSafe == true) {
                             "Produk aman dari komposisi yang memicu alergi, tetap cek kembali terkait komposisi pada kemasan."
                         } else {
                             "Produk ini mengandung bahan yang dapat memicu alergi."
@@ -234,7 +234,7 @@ fun ScanDetailScreen(
                         }
                     }
 
-                    if (!state.isSafe) {
+                    if (!(state.isSafe ?: false)) {
                         val allAllergens = (state.unsafeAllergens + state.detectedAllergens.map { it.name }).toSet().toList()
                         if (allAllergens.isNotEmpty()) {
                             Row(
@@ -309,21 +309,33 @@ fun ScanDetailScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Informasi Nutrisi
-                    Text(
-                        text = "Informasi Nutrisi",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "${state.product?.nutritionalInfo?.carbs ?: 0} karbohidrat, " +
-                                "${state.product?.nutritionalInfo?.protein ?: 0} protein, " +
-                                "${state.product?.nutritionalInfo?.fat ?: 0} lemak, " +
-                                "${state.product?.nutritionalInfo?.calories ?: 0} kalori",
-                        fontSize = 14.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+//                    Text(
+//                        text = "Informasi Nutrisi",
+//                        fontSize = 12.sp,
+//                        fontWeight = FontWeight.Medium,
+//                        color = Color.Gray
+//                    )
+//                    if (state.product?.nutritionalInfo.isNullOrEmpty()) {
+//                        Text(
+//                            text = "Tidak tersedia",
+//                            fontSize = 14.sp,
+//                            color = Color.Black,
+//                            modifier = Modifier.padding(top = 4.dp)
+//                        )
+//                    } else {
+//                        Column(
+//                            modifier = Modifier.padding(top = 4.dp)
+//                        ) {
+//                            state.product?.nutritionalInfo?.forEach { item ->
+//                                Text(
+//                                    text = "${item.name}: ${item.amount}",
+//                                    fontSize = 14.sp,
+//                                    color = Color.Black,
+//                                    modifier = Modifier.padding(bottom = 2.dp)
+//                                )
+//                            }
+//                        }
+//                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
                 }

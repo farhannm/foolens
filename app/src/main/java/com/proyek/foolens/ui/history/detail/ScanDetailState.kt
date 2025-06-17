@@ -13,6 +13,6 @@ data class ScanDetailState (
     val product: Product? = null,
     val detectedAllergens: List<Allergen> = emptyList(),
     val unsafeAllergens: List<String> = emptyList(),
-    val isSafe: Boolean = true,
+    val isSafe: Boolean? = null,
     val deleteSuccess: Boolean = false
 )
